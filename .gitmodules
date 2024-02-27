@@ -1,0 +1,3 @@
+[submodule "MobileSyncExplorerSwift/SalesforceMobileSDK-iOS"]
+	path = MobileSyncExplorerSwift/SalesforceMobileSDK-iOS
+	url = git@github.com:bbirman/SalesforceMobileSDK-iOS.git

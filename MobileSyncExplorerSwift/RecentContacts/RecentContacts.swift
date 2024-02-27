@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import WidgetKit
 import UIKit.UIApplication
 import SalesforceSDKCore
 
@@ -84,7 +83,7 @@ class RecentContacts {
             let encryptionKey = try KeyGenerator.encryptionKey(for: encryptionKeyLabel)
             let encryptedData = try Encryptor.encrypt(data: encodedData, using: encryptionKey)
             try encryptedData.write(to: url)
-            WidgetCenter.shared.reloadAllTimelines()
+//            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             SalesforceLogger.e(RecentContacts.self, message: "Error persisting contacts: \(error)")
         }
