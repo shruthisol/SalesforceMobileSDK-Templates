@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,7 +22,7 @@
 		69D6B29927AA5E3A008902E0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69D6B29827AA5E3A008902E0 /* SwiftUI.framework */; };
 		69D6B29C27AA5E3A008902E0 /* RecentContactsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D6B29B27AA5E3A008902E0 /* RecentContactsWidget.swift */; };
 		69D6B29E27AA5E3C008902E0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69D6B29D27AA5E3C008902E0 /* Assets.xcassets */; };
-		69D6B2A227AA5E3C008902E0 /* RecentContactsExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 69D6B29527AA5E3A008902E0 /* RecentContactsExtension.appex */; platformFilters = (ios, maccatalyst, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		69D6B2A227AA5E3C008902E0 /* RecentContactsExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 69D6B29527AA5E3A008902E0 /* RecentContactsExtension.appex */; platformFilter = maccatalyst; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		69D6B2AE27AA606E008902E0 /* RecentContacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D6B2AC27AA6030008902E0 /* RecentContacts.swift */; };
 		69DFDFD02B8E9785000906E4 /* MobileSync.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69DFDFB72B8E9758000906E4 /* MobileSync.framework */; };
 		69DFDFD12B8E9785000906E4 /* MobileSync.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 69DFDFB72B8E9758000906E4 /* MobileSync.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
