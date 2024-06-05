@@ -209,8 +209,8 @@ struct NavBarButtons: View {
                     .default(Text("Cancel")
                 )])
             }.sheet(item: $modalPresented) { creationType in
-                if creationType == ModalAction.inspectDB {
-                    InspectorViewControllerWrapper(store: self.viewModel.sObjectDataManager.store)
+                if let store = self.viewModel.sObjectDataManager.store, creationType == ModalAction.inspectDB {
+                    InspectorViewControllerWrapper(store: store)
                 } else if creationType == ModalAction.switchUser {
                     SalesforceUserManagementViewControllerWrapper()
                 }
@@ -325,4 +325,12 @@ struct SalesforceUserManagementViewControllerWrapper: UIViewControllerRepresenta
 
     func updateUIViewController(_ uiViewController: SalesforceUserManagementViewControllerWrapper.UIViewControllerType, context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) {
     }
+}
+
+#Preview {
+    let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
+    let userAccount = UserAccount(credentials: credentials)
+    let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
+    
+    return ContactListView(sObjectDataManager: sObjectManager)
 }
