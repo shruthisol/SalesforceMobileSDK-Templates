@@ -27,10 +27,8 @@
 
 import SwiftUI
 import SalesforceSDKCore
-
 struct ReadView: View {
     var contact: ContactSObjectData
-
     var body: some View {
         List {
             ReadViewField(fieldName: "First Name", fieldValue: contact.firstName)
@@ -43,11 +41,9 @@ struct ReadView: View {
         }
     }
 }
-
 struct ReadViewField: View {
     var fieldName: String
     var fieldValue: String?
-
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(fieldName).font(.subheadline).foregroundColor(.secondaryLabelText)
@@ -55,10 +51,8 @@ struct ReadViewField: View {
         }
     }
 }
-
 struct EditView: View {
     @Binding var contact: ContactSObjectData
-
     var body: some View {
         Form {
             TextField("First Name", text: $contact.firstName.bound)
@@ -78,19 +72,16 @@ struct EditView: View {
         }
     }
 }
-
 struct ContactDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject private var viewModel: ContactDetailViewModel
     @State private var isEditing: Bool = false
     private var onAppearAction: () -> Void = {}
     private var dismissAction: () -> Void = {}
-
     init(id: String, sObjectDataManager: SObjectDataManager, onAppear: @escaping () -> Void) {
         self.viewModel = ContactDetailViewModel(id: id, sObjectDataManager: sObjectDataManager)
         self.onAppearAction = onAppear
     }
-
     init(localId: String?, sObjectDataManager: SObjectDataManager, dismiss: @escaping () -> Void) {
         self.viewModel = ContactDetailViewModel(localId: localId, sObjectDataManager: sObjectDataManager)
         self.dismissAction = dismiss
@@ -98,7 +89,6 @@ struct ContactDetailView: View {
             self._isEditing = State(initialValue: true)
         }
     }
-
     var body: some View {
         VStack {
             if isEditing {
@@ -152,7 +142,6 @@ struct ContactDetailView: View {
         )
     }
 }
-
 struct DeleteButton: View {
     let label: String
     let isDisabled: Bool
@@ -161,7 +150,6 @@ struct DeleteButton: View {
     func buttonBackground() -> Color {
         isDisabled ? Color.disabledDestructiveButton : Color.destructiveButton
     }
-
     var body: some View {
         Button(action: {
             self.action()
@@ -181,7 +169,15 @@ struct DeleteButton: View {
             .padding(5)
             #endif
             
-
         }).disabled(isDisabled)
     }
 }
+#Preview {
+    let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
+    let userAccount = UserAccount(credentials: credentials)
+    let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
+    
+    return ContactDetailView(id: "", sObjectDataManager: sObjectManager) {
+    }
+}
+

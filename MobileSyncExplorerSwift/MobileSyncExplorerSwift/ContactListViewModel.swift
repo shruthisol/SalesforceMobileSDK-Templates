@@ -88,16 +88,16 @@ class ContactListViewModel: ObservableObject {
         if let syncUp = sObjectDataManager.getSync(sObjectDataManager.kSyncUpName), let syncDown = sObjectDataManager.getSync(sObjectDataManager.kSyncDownName), syncUp.isRunning() || syncDown.isRunning() {
             return
         }
-        createAlert(title: "Syncing with Salesforce", message: nil, stopButton: false)
+        //createAlert(title: "Syncing with Salesforce", message: nil, stopButton: false)
         sObjectDataManager.syncUpDown(completion: { [weak self] success in
-            if success {
-                self?.updateAlert(info: "Sync Complete!", okayButton: false)
-            } else {
-                self?.updateAlert(info: "Sync Failed!", okayButton: false)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self?.alertContent = nil
-            }
+//            if success {
+//                self?.updateAlert(info: "Sync Complete!", okayButton: false)
+//            } else {
+//                self?.updateAlert(info: "Sync Failed!", okayButton: false)
+//            }
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//                self?.alertContent = nil
+//            }
         })
     }
 
