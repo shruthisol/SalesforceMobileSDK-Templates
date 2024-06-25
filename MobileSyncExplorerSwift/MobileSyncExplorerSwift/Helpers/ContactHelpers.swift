@@ -85,30 +85,34 @@ class ContactHelper {
                        alpha: 1.0)
     }
     
-    static func initialsImage(_ color:UIColor, initials:String) -> UIImage? {
+    static func initialsImage(_ color: UIColor, initials: String) -> UIImage? {
         UIGraphicsBeginImageContext(CGSize(width: Constants.ContactCellImageSize, height: Constants.ContactCellImageSize))
-        let fillColor = color.withAlphaComponent(0.1)
-        guard let ctx = UIGraphicsGetCurrentContext() else {return UIImage()}
+        guard let ctx = UIGraphicsGetCurrentContext() else { return UIImage() }
         UIGraphicsPushContext(ctx)
-        let radius = Constants.ContactCellImageSize/2.0
+        let radius = Constants.ContactCellImageSize / 2.0
         let center = CGPoint(x: radius, y: radius)
-        ctx.setFillColor(fillColor.cgColor)
+        
+        // Set the fill color to the solid color
+        ctx.setFillColor(color.cgColor)
         ctx.beginPath()
         ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: .pi * 2.0, clockwise: false)
         ctx.fillPath()
         
+        // Set the initials color to white
         let string = initials as NSString
-        let attribs:[NSAttributedString.Key: Any] = [NSAttributedString.Key.foregroundColor: color, NSAttributedString.Key.font: UIFont.appRegularFont(19.0)]
+        let attribs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.appRegularFont(19.0)
+        ]
         let size = string.size(withAttributes: attribs)
         let rect = CGRect(x: center.x - (size.width / 2.0), y: center.y - (size.height / 2.0), width: size.width, height: size.height)
         string.draw(in: rect, withAttributes: attribs)
         
         UIGraphicsPopContext()
-        
         let image = UIGraphicsGetImageFromCurrentImageContext()
-        
         UIGraphicsEndImageContext()
         
         return image
     }
+
 }
