@@ -126,7 +126,7 @@ struct ContactsTab: View {
     @Binding var searchTerm: String
     @Binding var contactId: ContactSObjectData.ID?
     @Binding var selectedContactId: ContactSObjectData.ID?
-
+    
     var body: some View {
         NavigationSplitView {
             VStack {
@@ -134,8 +134,10 @@ struct ContactsTab: View {
                     self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
                 }) { contact in
                     Button(action: {
-                        self.contactId = contact.id
-                        self.selectedContactId = contact.id
+                        withAnimation(.easeInOut(duration: 0.3)) { // Animate selection change
+                            self.contactId = contact.id
+                            self.selectedContactId = contact.id
+                        }
                     }) {
                         HStack {
                             Circle()
@@ -158,8 +160,12 @@ struct ContactsTab: View {
 
                             Spacer()
                         }
-                        .padding(.vertical, 5)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 25)
                     }
+                    .background(self.selectedContactId == contact.id ? Color(.systemFill) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .animation(.easeInOut(duration: 0.2), value: self.selectedContactId)
                 }
                 .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
             }
@@ -183,6 +189,7 @@ struct ContactsTab: View {
         }
     }
 }
+
 
     struct ContactBox: View {
         var contact: ContactSObjectData
@@ -471,7 +478,7 @@ struct ContactsTab: View {
         }
     }
     
-struct NotificationBell: View {
+    struct NotificationBell: View {
         @ObservedObject var notificationModel: NotificationListModel
         var sObjectDataManager: SObjectDataManager
         
