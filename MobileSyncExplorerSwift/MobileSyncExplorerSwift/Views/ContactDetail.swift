@@ -103,11 +103,11 @@ struct ContactDetailView: View {
                     HStack(spacing: 20) {
                         if let mobilePhone = viewModel.contact.mobilePhone {
                             Button(action: {
-                                if let url = URL(string: "tel:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
+                                if let url = URL(string: "facetime:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
                                     UIApplication.shared.open(url)
                                 }
                             }) {
-                                Image(systemName: "phone.fill")
+                                Image(systemName: "video.fill")
                                     .font(.title)
                                     .foregroundColor(.white)
                             }

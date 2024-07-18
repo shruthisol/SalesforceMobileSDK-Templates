@@ -177,7 +177,7 @@ struct ContactsTab: View {
                 }
                 self.notificationModel.fetchNotifications()
             }
-            .navigationTitle("MobileSync Explorer")
+            .navigationTitle("Contacts")
         } detail: {
             if let selectedContact = contactId?.stringValue {
                 ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, dismiss: { self.viewModel.dismissDetail() })
