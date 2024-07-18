@@ -151,79 +151,71 @@ struct ContactDetailView: View {
             self.onAppearAction()
         }
         .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
-        .navigationBarBackButtonHidden(true)
-        .navigationBarItems(leading:
-            Button(action: {
-                if self.isEditing {
-                    withAnimation {
-                       self.isEditing.toggle()
-                    }
-                } else {
-                    self.presentationMode.wrappedValue.dismiss()
-                    self.dismissAction()
-                }
-            }, label: {
-                if self.isEditing {
-                    Text("Cancel")
-                } else {
-                    HStack {
-                        Image("backArrow")
-                            .renderingMode(.template)
-                        Text("Back")
-                    }
-                }
-            }), trailing:
+        .navigationBarItems(trailing:
+                                HStack {
             Button(action: {
                 if self.isEditing {
                     self.viewModel.saveButtonTapped()
                     self.dismissAction()
                 }
                 withAnimation {
-                   self.isEditing.toggle()
+                    self.isEditing.toggle()
                 }
             }, label: {
                 self.isEditing ? Text("Save") : Text("Edit")
             })
+            .padding(.trailing, 10)
+            
+            if self.isEditing {
+                Button(action: {
+                    withAnimation {
+                        self.isEditing.toggle()
+                    }
+                }, label: {
+                    Text("Cancel")
+                })
+            }
+        }
         )
     }
-}
-
-struct DeleteButton: View {
-    let label: String
-    let isDisabled: Bool
-    let action: () -> ()
     
-    func buttonBackground() -> Color {
-        isDisabled ? Color.disabledDestructiveButton : Color.destructiveButton
-    }
-    var body: some View {
-        Button(action: {
-            self.action()
-        }, label: {
-            Label(
-                title: { Text(label) },
-                icon: { Image(systemName: "trash") }
-            )
-            .frame(width: 350, height: 50, alignment: .center)
-            // all of the above is for both Vision and iOS
-            #if os(visionOS) //changes only for VisionOS
-            .foregroundColor(.red)
-            #else //changes only for iOS
-            .foregroundColor(.white)
-            .background(buttonBackground())
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(buttonBackground(), lineWidth: 1))
-            .padding(5)
-            #endif
-            
-        }).disabled(isDisabled)
-    }
-}
-#Preview {
-    let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
-    let userAccount = UserAccount(credentials: credentials)
-    let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
     
-    return ContactDetailView(id: "", sObjectDataManager: sObjectManager) {
+    struct DeleteButton: View {
+        let label: String
+        let isDisabled: Bool
+        let action: () -> ()
+        
+        func buttonBackground() -> Color {
+            isDisabled ? Color.disabledDestructiveButton : Color.destructiveButton
+        }
+        var body: some View {
+            Button(action: {
+                self.action()
+            }, label: {
+                Label(
+                    title: { Text(label) },
+                    icon: { Image(systemName: "trash") }
+                )
+                .frame(width: 350, height: 50, alignment: .center)
+                // all of the above is for both Vision and iOS
+#if os(visionOS) //changes only for VisionOS
+                .foregroundColor(.red)
+#else //changes only for iOS
+                .foregroundColor(.white)
+                .background(buttonBackground())
+                .overlay(RoundedRectangle(cornerRadius: 5).stroke(buttonBackground(), lineWidth: 1))
+                .padding(5)
+#endif
+                
+            }).disabled(isDisabled)
+        }
+    }
+    #Preview {
+        let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
+        let userAccount = UserAccount(credentials: credentials)
+        let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
+        
+        return ContactDetailView(id: "", sObjectDataManager: sObjectManager) {
+        }
     }
 }
-
