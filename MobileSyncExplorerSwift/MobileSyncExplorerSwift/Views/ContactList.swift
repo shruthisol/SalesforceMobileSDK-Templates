@@ -1,4 +1,3 @@
-//
 //  ContactList.swift
 //  MobileSyncExplorerSwift
 //
@@ -30,305 +29,89 @@ import SwiftUI
 import MobileSync
 
 struct ContactListView: View {
-    @ObservedObject private var viewModel: ContactListViewModel
+    @ObservedObject var viewModel: ContactListViewModel
     private var notificationModel = NotificationListModel()
     @State private var searchTerm: String = ""
-    
+    @State private var contactId: ContactSObjectData.ID?
+    @State private var selectedContactId: ContactSObjectData.ID?
+    @State private var showSettings = false
+    @State private var syncAlertPresented = false
+    @State private var showNewContact = false
+    @State private var showNotifications = false
+    @State private var modalPresented: ModalAction?
+    @State private var customActionSheetPresented = false
+    @State private var logoutAlertPresented = false
+    @Environment(\.presentationMode) var presentationMode
+
     init(sObjectDataManager: SObjectDataManager, selectedRecord: String? = nil, newContact: Bool = false, searchFocused: Bool = false) {
         self.viewModel = ContactListViewModel(sObjectDataManager: sObjectDataManager, presentNewContact: newContact, selectedRecord: selectedRecord)
     }
     
     var body: some View {
-        NavigationView {
-            VStack {
-                SearchBar(text: self.$searchTerm)
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                
-                Spacer()
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 45) {
-                        ForEach(viewModel.sObjectDataManager.contacts.filter { contact in
-                            self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
-                        }) { contact in
-                            Button(action: {
-                                viewModel.contactSelected(contact)
-                            }) {
-                                ContactBox(contact: contact)
-                                    .onDrag { return viewModel.itemProvider(contact: contact) }
-                            }
-                            .frame(width: 300, height: 500)
-                            .buttonBorderShape(.roundedRectangle)
-//                            .background(SObjectDataManager.dataLocallyDeleted(contact) ? Color.contactCellDeletedBackground : .clear)
-//                            .shadow(radius: 5)
-                        }
-                        
-                        Button(action: {
-                            viewModel.newContactToggled()
-                        }) {
-                            AddContactBox()
-                        }
-                        .buttonBorderShape(.roundedRectangle)
-                        Spacer()
-                            .shadow(radius: 5)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.leading, 20)
-                }
-                
-                Spacer()
-                
-                NavigationLink(destination: ContactDetailView(localId: viewModel.selectedRecord, sObjectDataManager: self.viewModel.sObjectDataManager, dismiss: { self.viewModel.dismissDetail()}), isActive: $viewModel.showContactDetail) { EmptyView() }
-                
-                if viewModel.alertContent != nil {
-                    StatusAlert(viewModel: viewModel)
-                }
-            }
-            .navigationBarTitle("MobileSync Explorer", displayMode: .inline)
-            .navigationBarItems(trailing: NavBarButtons(viewModel: viewModel, notificationModel: notificationModel))
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .onAppear {
-            self.notificationModel.fetchNotifications()
-        }
-    }
-}
-
-struct ContactBox: View {
-    var contact: ContactSObjectData
-    @State private var isHovered: Bool = false
-
-    var body: some View {
-        VStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                    .frame(width: 160, height: 160)
-                    .scaledToFit()
-                
-                
-                Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                    .font(.system(size: 64))
-                    .foregroundColor(.white)
-            }
-            .padding(20)
-            
-            
-            Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                            .font(.largeTitle)
-                            .foregroundColor(Color(UIColor.label))
-                            .frame(height: 40) // Fixed height for name
-
-            // Contact Title
-            Text(ContactHelper.titleStringFromContact(title: contact.title))
-                .font(.title)
-                .foregroundColor(.secondary)
-                .frame(height: 20) // Fixed height for title
-            
-            
-            HStack(spacing: 20) {
-                if let mobilePhone = contact.mobilePhone {
-                    Button(action: {
-                        if let url = URL(string: "tel:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        Image(systemName: "phone.fill")
-                            .foregroundColor(.white)
-                    }
-                    
-                    Button(action: {
-                        if let url = URL(string: "sms:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        Image(systemName: "message.fill")
-                            .foregroundColor(.white)
-                    }
-                }
-                if let email = contact.email {
-                    Button(action: {
-                        if let url = URL(string: "mailto:\(email)"), UIApplication.shared.canOpenURL(url) {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        Image(systemName: "envelope.fill")
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            .frame(height: 40)
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, 10)
-            .buttonBorderShape(.circle)
-        }
-        .padding(20)
-        .background(Color(UIColor.systemBackground))
-        .frame(width: 300, height: 400)
-        //.cornerRadius(8)
-        .shadow(radius: 10)
-        .scaleEffect(isHovered ? 1.05 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isHovered)
-        .onHover { hovering in
-            self.isHovered = hovering
-        }
-    }
-}
-
-
-
-
-struct AddContactBox: View {
-    @State private var isHovered: Bool = false
-    
-    var body: some View {
         VStack {
-            Spacer()
-            
-            Image(systemName: "plus")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 80, height: 80)
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-        }
-        .padding(10)
-        .background(Color(UIColor.systemBackground))
-        .shadow(radius: 10)
-        .frame(width: 100, height: 140)
-        .scaleEffect(isHovered ? 1.05 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isHovered)
-        .onHover { hovering in
-            self.isHovered = hovering
-        }
-    }
-}
-
-
-
-
-
-struct StatusAlert: View {
-    @ObservedObject var viewModel: ContactListViewModel
-
-    func twoButtonDisplay() -> Bool {
-        if let alertContent = viewModel.alertContent {
-            return alertContent.okayButton && alertContent.stopButton
-        }
-        return false
-    }
-
-    func stopButton() -> Bool {
-        return viewModel.alertContent?.stopButton ?? false
-    }
-
-    func okayButton() -> Bool {
-        return viewModel.alertContent?.okayButton ?? false
-    }
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
-            VStack {
-                Text(viewModel.alertContent?.title ?? "").bold()
-                Text(viewModel.alertContent?.message ?? "").lineLimit(nil)
+            TabView {
+                ContactsTab(viewModel: viewModel, notificationModel: notificationModel, searchTerm: $searchTerm, contactId: $contactId, selectedContactId: $selectedContactId)
+                    .tabItem {
+                        Label("Contacts", systemImage: "person.2")
+                    }
                 
-                if stopButton() || okayButton() {
-                    Divider()
-                    HStack {
-                        if stopButton() {
-                            if twoButtonDisplay() {
-                                Spacer()
-                            }
-                            Button(action: {
-                                self.viewModel.alertStopTapped()
-                            }, label: {
-                                Text("Stop").foregroundColor(Color.blue)
-                            })
-                        }
-                        
-                        if twoButtonDisplay() {
-                            Spacer()
-                            Divider()
-                            Spacer()
-                        }
-
-                        if okayButton() {
-                            Button(action: {
-                                self.viewModel.alertOkTapped()
-                            }, label: {
-                                Text("Ok").foregroundColor(Color.blue)
-                            })
-                            if twoButtonDisplay() {
-                                Spacer()
-                            }
+                
+                NavigationStack{
+                    ContactDetailView.init(localId: nil, sObjectDataManager: viewModel.sObjectDataManager, dismiss: {
+                    })
+                }
+                .tabItem {
+                    Label("Add", systemImage: "plus")
+                }
+                
+                
+//                Button(action: {
+//                    self.syncAlertPresented = true;
+//                    self.showSyncAlert()
+//                }) {
+//                    Label("Sync", systemImage: "arrow.clockwise")
+//                }
+//                .tabItem {
+//                    Label("Sync", systemImage: "arrow.clockwise")
+//                }
+                
+                CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
+                    .tabItem {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                
+                NavigationStack {
+                        NotificationList(model: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                    }
+                    .tabItem {
+                        VStack {
+                            NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                            Text("Notifications")
                         }
                     }
-                    .frame(height: 30)
-                }
+                
+                
+//                Button(action: {
+//                    self.showNotifications = true
+//                }) {
+//                    Label("Notifications", systemImage: "bell")
+//                }
+//                .tabItem {
+//                    Label("Notifications", systemImage: "bell")
+//                }
+//                .sheet(isPresented: $showNotifications) {
+//                    NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+//                    //.navigationBarItems(trailing: NavBarButtons(viewModel: viewModel, notificationModel: notificationModel))
+//                }
             }
-            .padding(10)
-            .frame(maxWidth: 300, minHeight: 100)
-            .background(Color(UIColor.secondarySystemBackground))
-            .opacity(1.0)
-            .foregroundColor(Color(UIColor.label))
-            .cornerRadius(20)
+            // (Adding in this alert crashes the app
+            //        }
+                        //        alert(isPresented: $syncAlertPresented, content: {
+                        //                        Alert(title: Text("Sync Complete"),
+                        //                              message: Text("Data synced successfully."),
+                        //                              dismissButton: .default(Text("OK")))
+                        //                    })
         }
-    }
-}
-
-enum ModalAction: Identifiable {
-    case switchUser
-    case inspectDB
-
-    var id: Int {
-        return self.hashValue
-    }
-}
-
-import SwiftUI
-
-struct NavBarButtons: View {
-    @ObservedObject var viewModel: ContactListViewModel
-    @ObservedObject var notificationModel: NotificationListModel
-    @State private var modalPresented: ModalAction?
-    @State private var customActionSheetPresented = false
-    @State private var logoutAlertPresented = false
-    @State private var syncAlertPresented = false // New state for sync alert
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        ZStack {
-            HStack {
-                Button(action: {
-                    viewModel.newContactToggled()
-                }, label: { Image("plusButton").renderingMode(.template) })
-
-                Button(action: {
-                    self.showSyncAlert()
-                }, label: { Image("sync").renderingMode(.template) })
-
-                Button(action: {
-                    self.customActionSheetPresented = true
-                }, label: { Image("setting").renderingMode(.template) })
-                .sheet(isPresented: $customActionSheetPresented) {
-                    CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
-                        .frame(width: 400, height: 500) // Adjust the size of the settings view
-                }
-
-                NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
-
-            }
-        }
-        .alert(isPresented: $syncAlertPresented, content: {
-            Alert(title: Text("Sync Complete"),
-                  message: Text("Data synced successfully."),
-                  dismissButton: .default(Text("OK")))
-        })
     }
 
     private func showSyncAlert() {
@@ -337,167 +120,464 @@ struct NavBarButtons: View {
     }
 }
 
-struct CustomActionSheet: View {
+struct ContactsTab: View {
     @ObservedObject var viewModel: ContactListViewModel
-    @Binding var logoutAlertPresented: Bool
-    @Binding var modalPresented: ModalAction?
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        NavigationView {
-            List {
-                Button("Show Info") {
-                    self.viewModel.showInfo()
-                }
-                Button("Clear Local Data") {
-                    self.viewModel.clearLocalData()
-                }
-                Button("Refresh Local Data") {
-                    self.viewModel.refreshLocalData()
-                }
-                Button("Sync Down") {
-                    self.viewModel.syncDown()
-                }
-                Button("Sync Up") {
-                    self.viewModel.syncUp()
-                }
-                Button("Clean Sync Ghosts") {
-                    self.viewModel.cleanGhosts()
-                }
-                Button("Stop Sync Manager") {
-                    self.viewModel.stopSyncManager()
-                }
-                Button("Resume Sync Manager") {
-                    self.viewModel.resumeSyncManager()
-                }
-                Button("Logout") {
-                    self.logoutAlertPresented = true
-                }
-                Button("Switch User") {
-                    self.modalPresented = ModalAction.switchUser
-                }
-                Button("Inspect DB") {
-                    self.modalPresented = ModalAction.inspectDB
-                }
-                Button("Cancel", role: .cancel) {
-                    self.presentationMode.wrappedValue.dismiss()
-                }
-            }
-            .navigationTitle("Additional Actions")
-            .navigationBarTitleDisplayMode(.inline)
-            .listStyle(InsetGroupedListStyle())
-        }
-    }
-}
-
-
-
-
-struct NotificationBell: View {
     @ObservedObject var notificationModel: NotificationListModel
-    var sObjectDataManager: SObjectDataManager
+    @Binding var searchTerm: String
+    @Binding var contactId: ContactSObjectData.ID?
+    @Binding var selectedContactId: ContactSObjectData.ID?
 
     var body: some View {
-        NavigationLink(destination: NotificationList(model: notificationModel, sObjectDataManager: sObjectDataManager)) {
-            ZStack {
-                Image(systemName: "bell.fill").frame(width: 20, height: 30, alignment: .center)
-                if notificationModel.unreadCount() > 0 {
-                    ZStack {
-                        Circle().foregroundColor(.red)
-                        Text("\(notificationModel.unreadCount())").foregroundColor(.white).font(Font.system(size: 12))
+        NavigationSplitView {
+            VStack {
+                List(viewModel.sObjectDataManager.contacts.filter { contact in
+                    self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
+                }) { contact in
+                    Button(action: {
+                        self.contactId = contact.id
+                        self.selectedContactId = contact.id
+                    }) {
+                        HStack {
+                            Circle()
+                                .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
+                                )
+
+                            VStack(alignment: .leading) {
+                                Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                    .font(.headline)
+
+                                Text(ContactHelper.titleStringFromContact(title: contact.title))
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.vertical, 5)
                     }
-                    .frame(width: 12, height: 12)
-                    .position(x: 15, y: 10)
                 }
-              }
-              .frame(width: 20, height: 30)
-        }
-    }
-}
-
-struct ContactCell: View {
-    var contact: ContactSObjectData
-
-    var body: some View {
-        HStack {
-            Image(uiImage: ContactHelper.initialsImage(ContactHelper.colorFromContact(lastName: contact.lastName), initials: ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))!)
-            VStack(alignment: .leading) {
-                Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName)).font(.appRegularFont(16)).foregroundColor(Color(UIColor.label))
-                Text(ContactHelper.titleStringFromContact(title: contact.title)).font(.appRegularFont(12)).foregroundColor(.secondaryLabelText)
+                .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
             }
-            Spacer()
-            if SObjectDataManager.dataLocallyUpdated(contact) {
-                Image(systemName: "arrow.2.circlepath").foregroundColor(.appBlue)
+            .frame(minWidth: 200)
+            .onAppear {
+                if let firstContact = viewModel.sObjectDataManager.contacts.first {
+                    self.contactId = firstContact.id
+                    self.selectedContactId = firstContact.id
+                }
+                self.notificationModel.fetchNotifications()
             }
-            if SObjectDataManager.dataLocallyCreated(contact) {
-                Image(systemName: "plus").foregroundColor(.appBlue)
+            .navigationTitle("MobileSync Explorer")
+        } detail: {
+            if let selectedContact = contactId?.stringValue {
+                ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, dismiss: { self.viewModel.dismissDetail() })
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Text(viewModel.sObjectDataManager.contacts.isEmpty ? "No Recent Contacts" : "Select a contact to view details")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .padding([.all], 10)
     }
 }
 
-struct SearchBar: UIViewRepresentable {
-    @Binding var text: String
-
-    class Coordinator: NSObject, UISearchBarDelegate {
-        @Binding var text: String
-
-        init(text: Binding<String>) {
-            _text = text
+    struct ContactBox: View {
+        var contact: ContactSObjectData
+        @State private var isHovered: Bool = false
+        
+        var body: some View {
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                        .frame(width: 160, height: 160)
+                        .scaledToFit()
+                    
+                    
+                    Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                        .font(.system(size: 64))
+                        .foregroundColor(.white)
+                }
+                .padding(20)
+                
+                
+                Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                    .font(.largeTitle)
+                    .foregroundColor(Color(UIColor.label))
+                    .frame(height: 40) // Fixed height for name
+                
+                // Contact Title
+                Text(ContactHelper.titleStringFromContact(title: contact.title))
+                    .font(.title)
+                    .foregroundColor(.secondary)
+                    .frame(height: 20) // Fixed height for title
+                
+                
+                if #available(iOS 17.0, *) {
+                    HStack(spacing: 20) {
+                        if let mobilePhone = contact.mobilePhone {
+                            Button(action: {
+                                if let url = URL(string: "tel:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Image(systemName: "phone.fill")
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Button(action: {
+                                if let url = URL(string: "sms:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Image(systemName: "message.fill")
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        if let email = contact.email {
+                            Button(action: {
+                                if let url = URL(string: "mailto:\(email)"), UIApplication.shared.canOpenURL(url) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Image(systemName: "envelope.fill")
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .frame(height: 40)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
+                    .buttonBorderShape(.circle)
+                } else {
+                    // Fallback on earlier versions
+                }
+            }
+            .padding(20)
+            .background(Color(UIColor.systemBackground))
+            .frame(width: 300, height: 400)
+            //.cornerRadius(8)
+            .shadow(radius: 10)
+            .scaleEffect(isHovered ? 1.05 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isHovered)
+            .onHover { hovering in
+                self.isHovered = hovering
+            }
         }
-
-        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-            text = searchText
-        }
     }
-
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(text: $text)
-    }
-
-    func makeUIView(context: UIViewRepresentableContext<SearchBar>) -> UISearchBar {
-        let searchBar = UISearchBar()
-        searchBar.placeholder = "Search"
-        searchBar.delegate = context.coordinator
-        return searchBar
-    }
-
-    func updateUIView(_ uiView: UISearchBar, context: UIViewRepresentableContext<SearchBar>) {
-        uiView.text = text
-    }
-}
-
-struct InspectorViewControllerWrapper: UIViewControllerRepresentable {
-    typealias UIViewControllerType = InspectorViewController
-    var store: SmartStore
-
-    func updateUIViewController(_ uiViewController: InspectorViewController, context: Context) {
-    }
-
-    func makeUIViewController(context: UIViewControllerRepresentableContext<InspectorViewControllerWrapper>) -> InspectorViewControllerWrapper.UIViewControllerType {
-        return InspectorViewController(store: store)
-    }
-}
-
-struct SalesforceUserManagementViewControllerWrapper: UIViewControllerRepresentable {
-    typealias UIViewControllerType = SalesforceUserManagementViewController
-    @Environment(\.presentationMode) var presentationMode
-
-    func makeUIViewController(context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) -> SalesforceUserManagementViewControllerWrapper.UIViewControllerType {
-        return SalesforceUserManagementViewController { _ in
-            self.presentationMode.wrappedValue.dismiss()
-        }
-    }
-
-    func updateUIViewController(_ uiViewController: SalesforceUserManagementViewControllerWrapper.UIViewControllerType, context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) {
-    }
-}
-
-#Preview {
-    let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
-    let userAccount = UserAccount(credentials: credentials)
-    let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
     
-    return ContactListView(sObjectDataManager: sObjectManager)
-}
+    struct AddContactBox: View {
+        @State private var isHovered: Bool = false
+        
+        var body: some View {
+            VStack {
+                Spacer()
+                
+                Image(systemName: "plus")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+            }
+            .padding(10)
+            .background(Color(UIColor.systemBackground))
+            .shadow(radius: 10)
+            .frame(width: 100, height: 140)
+            .scaleEffect(isHovered ? 1.05 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isHovered)
+            .onHover { hovering in
+                self.isHovered = hovering
+            }
+        }
+    }
+    
+    struct StatusAlert: View {
+        @ObservedObject var viewModel: ContactListViewModel
+        
+        func twoButtonDisplay() -> Bool {
+            if let alertContent = viewModel.alertContent {
+                return alertContent.okayButton && alertContent.stopButton
+            }
+            return false
+        }
+        
+        func stopButton() -> Bool {
+            return viewModel.alertContent?.stopButton ?? false
+        }
+        
+        func okayButton() -> Bool {
+            return viewModel.alertContent?.okayButton ?? false
+        }
+        
+        var body: some View {
+            ZStack {
+                Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
+                VStack {
+                    Text(viewModel.alertContent?.title ?? "").bold()
+                    Text(viewModel.alertContent?.message ?? "").lineLimit(nil)
+                    
+                    if stopButton() || okayButton() {
+                        Divider()
+                        HStack {
+                            if stopButton() {
+                                if twoButtonDisplay() {
+                                    Spacer()
+                                }
+                                Button(action: {
+                                    self.viewModel.alertStopTapped()
+                                }, label: {
+                                    Text("Stop").foregroundColor(Color.blue)
+                                })
+                            }
+                            
+                            if twoButtonDisplay() {
+                                Spacer()
+                                Divider()
+                                Spacer()
+                            }
+                            
+                            if okayButton() {
+                                Button(action: {
+                                    self.viewModel.alertOkTapped()
+                                }, label: {
+                                    Text("Ok").foregroundColor(Color.blue)
+                                })
+                                if twoButtonDisplay() {
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .frame(height: 30)
+                    }
+                }
+                .padding(10)
+                .frame(maxWidth: 300, minHeight: 100)
+                .background(Color(UIColor.secondarySystemBackground))
+                .opacity(1.0)
+                .foregroundColor(Color(UIColor.label))
+                .cornerRadius(20)
+            }
+        }
+    }
+    
+    enum ModalAction: Identifiable {
+        case switchUser
+        case inspectDB
+        
+        var id: Int {
+            return self.hashValue
+        }
+    }
+    
+    struct NavBarButtons: View {
+        @ObservedObject var viewModel: ContactListViewModel
+        @ObservedObject var notificationModel: NotificationListModel
+        @State private var modalPresented: ModalAction?
+        @State private var customActionSheetPresented = false
+        @State private var logoutAlertPresented = false
+        @State private var syncAlertPresented = false // New state for sync alert
+        @Environment(\.presentationMode) var presentationMode
+        
+        var body: some View {
+            ZStack {
+                HStack {
+                    Button(action: {
+                        viewModel.newContactToggled()
+                    }, label: { Image("plusButton").renderingMode(.template) })
+                    
+                    Button(action: {
+                        self.showSyncAlert()
+                    }, label: { Image("sync").renderingMode(.template) })
+                    
+                    Button(action: {
+                        self.customActionSheetPresented = true
+                    }, label: { Image("setting").renderingMode(.template) })
+                    .sheet(isPresented: $customActionSheetPresented) {
+                        CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
+                            .frame(width: 400, height: 500) // Adjust the size of the settings view
+                    }
+                    
+                    NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                    
+                }
+            }
+            .alert(isPresented: $syncAlertPresented, content: {
+                Alert(title: Text("Sync Complete"),
+                      message: Text("Data synced successfully."),
+                      dismissButton: .default(Text("OK")))
+            })
+        }
+        
+        private func showSyncAlert() {
+            self.viewModel.syncUpDown() // Perform sync action
+            self.syncAlertPresented = true // Show the sync alert
+        }
+    }
+    
+    struct CustomActionSheet: View {
+        @ObservedObject var viewModel: ContactListViewModel
+        @Binding var logoutAlertPresented: Bool
+        @Binding var modalPresented: ModalAction?
+        @Environment(\.presentationMode) var presentationMode
+        
+        var body: some View {
+            NavigationStack {
+                List {
+                    Button("Show Info") {
+                        self.viewModel.showInfo()
+                    }
+                    Button("Clear Local Data") {
+                        self.viewModel.clearLocalData()
+                    }
+                    Button("Refresh Local Data") {
+                        self.viewModel.refreshLocalData()
+                    }
+                    Button("Sync Down") {
+                        self.viewModel.syncDown()
+                    }
+                    Button("Sync Up") {
+                        self.viewModel.syncUp()
+                    }
+                    Button("Clean Sync Ghosts") {
+                        self.viewModel.cleanGhosts()
+                    }
+                    Button("Stop Sync Manager") {
+                        self.viewModel.stopSyncManager()
+                    }
+                    Button("Resume Sync Manager") {
+                        self.viewModel.resumeSyncManager()
+                    }
+                    Button("Logout") {
+                        self.logoutAlertPresented = true
+                    }
+                    Button("Switch User") {
+                        self.modalPresented = ModalAction.switchUser
+                    }
+                    Button("Inspect DB") {
+                        self.modalPresented = ModalAction.inspectDB
+                    }
+                }
+                .navigationTitle("Additional Actions")
+                .navigationBarTitleDisplayMode(.inline)
+                .listStyle(InsetGroupedListStyle())
+            }
+        }
+    }
+    
+struct NotificationBell: View {
+        @ObservedObject var notificationModel: NotificationListModel
+        var sObjectDataManager: SObjectDataManager
+        
+        var body: some View {
+            NavigationLink(destination: NotificationList(model: notificationModel, sObjectDataManager: sObjectDataManager)) {
+                ZStack {
+                    Image(systemName: "bell.fill").frame(width: 20, height: 30, alignment: .center)
+                    if notificationModel.unreadCount() > 0 {
+                        ZStack {
+                            Circle().foregroundColor(.red)
+                            Text("\(notificationModel.unreadCount())").foregroundColor(.white).font(Font.system(size: 12))
+                        }
+                        .frame(width: 12, height: 12)
+                        .position(x: 15, y: 10)
+                    }
+                }
+                .frame(width: 20, height: 30)
+            }
+        }
+    }
+    
+    struct ContactCell: View {
+        var contact: ContactSObjectData
+        
+        var body: some View {
+            HStack {
+                Image(uiImage: ContactHelper.initialsImage(ContactHelper.colorFromContact(lastName: contact.lastName), initials: ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))!)
+                VStack(alignment: .leading) {
+                    Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName)).font(.appRegularFont(16)).foregroundColor(Color(UIColor.label))
+                    Text(ContactHelper.titleStringFromContact(title: contact.title)).font(.appRegularFont(12)).foregroundColor(.secondaryLabelText)
+                }
+                Spacer()
+                if SObjectDataManager.dataLocallyUpdated(contact) {
+                    Image(systemName: "arrow.2.circlepath").foregroundColor(.appBlue)
+                }
+                if SObjectDataManager.dataLocallyCreated(contact) {
+                    Image(systemName: "plus").foregroundColor(.appBlue)
+                }
+            }
+            .padding([.all], 10)
+        }
+    }
+    
+//    struct SearchBar: UIViewRepresentable {
+//        @Binding var text: String
+//        
+//        class Coordinator: NSObject, UISearchBarDelegate {
+//            @Binding var text: String
+//            
+//            init(text: Binding<String>) {
+//                _text = text
+//            }
+//            
+//            func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+//                text = searchText
+//            }
+//        }
+//        
+//        func makeCoordinator() -> Coordinator {
+//            return Coordinator(text: $text)
+//        }
+//        
+//        func makeUIView(context: UIViewRepresentableContext<SearchBar>) -> UISearchBar {
+//            let searchBar = UISearchBar()
+//            searchBar.placeholder = "Search"
+//            searchBar.delegate = context.coordinator
+//            return searchBar
+//        }
+//        
+//        func updateUIView(_ uiView: UISearchBar, context: UIViewRepresentableContext<SearchBar>) {
+//            uiView.text = text
+//        }
+//    }
+    
+    struct InspectorViewControllerWrapper: UIViewControllerRepresentable {
+        typealias UIViewControllerType = InspectorViewController
+        var store: SmartStore
+        
+        func updateUIViewController(_ uiViewController: InspectorViewController, context: Context) {
+        }
+        
+        func makeUIViewController(context: UIViewControllerRepresentableContext<InspectorViewControllerWrapper>) -> InspectorViewControllerWrapper.UIViewControllerType {
+            return InspectorViewController(store: store)
+        }
+    }
+    
+    struct SalesforceUserManagementViewControllerWrapper: UIViewControllerRepresentable {
+        typealias UIViewControllerType = SalesforceUserManagementViewController
+        @Environment(\.presentationMode) var presentationMode
+        
+        func makeUIViewController(context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) -> SalesforceUserManagementViewControllerWrapper.UIViewControllerType {
+            return SalesforceUserManagementViewController { _ in
+                self.presentationMode.wrappedValue.dismiss()
+            }
+        }
+        
+        func updateUIViewController(_ uiViewController: SalesforceUserManagementViewControllerWrapper.UIViewControllerType, context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) {
+        }
+    }
+    
+    #Preview {
+        let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
+        let userAccount = UserAccount(credentials: credentials)
+        let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
+        
+        return ContactListView(sObjectDataManager: sObjectManager)
+    }
+    
+

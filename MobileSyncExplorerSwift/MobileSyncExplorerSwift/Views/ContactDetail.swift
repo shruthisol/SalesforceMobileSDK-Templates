@@ -78,10 +78,12 @@ struct ContactDetailView: View {
     @State private var isEditing: Bool = false
     private var onAppearAction: () -> Void = {}
     private var dismissAction: () -> Void = {}
+    
     init(id: String, sObjectDataManager: SObjectDataManager, onAppear: @escaping () -> Void) {
         self.viewModel = ContactDetailViewModel(id: id, sObjectDataManager: sObjectDataManager)
         self.onAppearAction = onAppear
     }
+    
     init(localId: String?, sObjectDataManager: SObjectDataManager, dismiss: @escaping () -> Void) {
         self.viewModel = ContactDetailViewModel(localId: localId, sObjectDataManager: sObjectDataManager)
         self.dismissAction = dismiss
@@ -89,20 +91,63 @@ struct ContactDetailView: View {
             self._isEditing = State(initialValue: true)
         }
     }
+    
     var body: some View {
         VStack {
             if isEditing {
                 EditView(contact: $viewModel.contact)
             } else {
-                ReadView(contact: viewModel.contact)
+                VStack {
+                    ReadView(contact: viewModel.contact)
+                    
+                    HStack(spacing: 20) {
+                        if let mobilePhone = viewModel.contact.mobilePhone {
+                            Button(action: {
+                                if let url = URL(string: "tel:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Image(systemName: "phone.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Button(action: {
+                                if let url = URL(string: "sms:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Image(systemName: "message.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        if let email = viewModel.contact.email {
+                            Button(action: {
+                                if let url = URL(string: "mailto:\(email)"), UIApplication.shared.canOpenURL(url) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Image(systemName: "envelope.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .padding(.top, 20)
+                }
             }
+            
             Spacer()
+            
             DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
                 self.viewModel.deleteButtonTapped()
                 self.dismissAction()
             }
             .padding(20)
-        }.onAppear {
+        }
+        .onAppear {
             self.onAppearAction()
         }
         .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
@@ -142,6 +187,7 @@ struct ContactDetailView: View {
         )
     }
 }
+
 struct DeleteButton: View {
     let label: String
     let isDisabled: Bool
