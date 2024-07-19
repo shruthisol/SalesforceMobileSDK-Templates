@@ -101,39 +101,41 @@ struct ContactDetailView: View {
                     ReadView(contact: viewModel.contact)
                     
                     HStack(spacing: 20) {
-                        if let mobilePhone = viewModel.contact.mobilePhone {
-                            Button(action: {
-                                if let url = URL(string: "facetime:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Image(systemName: "video.fill")
-                                    .font(.title)
-                                    .foregroundColor(.white)
+                        Button(action: {
+                            if let mobilePhone = viewModel.contact.mobilePhone,
+                               let url = URL(string: "facetime:\(mobilePhone)"),
+                               UIApplication.shared.canOpenURL(url) {
+                                UIApplication.shared.open(url)
                             }
-                            
-                            Button(action: {
-                                if let url = URL(string: "sms:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Image(systemName: "message.fill")
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                            }
+                        }) {
+                            Image(systemName: "video.fill")
+                                .font(.title)
                         }
+                        .disabled(viewModel.contact.mobilePhone == nil)
                         
-                        if let email = viewModel.contact.email {
-                            Button(action: {
-                                if let url = URL(string: "mailto:\(email)"), UIApplication.shared.canOpenURL(url) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Image(systemName: "envelope.fill")
-                                    .font(.title)
-                                    .foregroundColor(.white)
+                        Button(action: {
+                            if let mobilePhone = viewModel.contact.mobilePhone,
+                               let url = URL(string: "sms:\(mobilePhone)"),
+                               UIApplication.shared.canOpenURL(url) {
+                                UIApplication.shared.open(url)
                             }
+                        }) {
+                            Image(systemName: "message.fill")
+                                .font(.title)
                         }
+                        .disabled(viewModel.contact.mobilePhone == nil)
+                        
+                        Button(action: {
+                            if let email = viewModel.contact.email,
+                               let url = URL(string: "mailto:\(email)"),
+                               UIApplication.shared.canOpenURL(url) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            Image(systemName: "envelope.fill")
+                                .font(.title)
+                        }
+                        .disabled(viewModel.contact.email == nil)
                     }
                     .padding(.top, 20)
                 }
@@ -177,7 +179,10 @@ struct ContactDetailView: View {
             }
         }
         )
-    }
+    
+}
+
+
     
     
     struct DeleteButton: View {
