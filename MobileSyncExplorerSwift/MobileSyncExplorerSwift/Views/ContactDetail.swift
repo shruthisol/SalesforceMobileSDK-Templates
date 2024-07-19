@@ -72,6 +72,7 @@ struct EditView: View {
         }
     }
 }
+
 struct ContactDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject private var viewModel: ContactDetailViewModel
@@ -142,12 +143,10 @@ struct ContactDetailView: View {
             }
             
             Spacer()
-            
-            DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
-                self.viewModel.deleteButtonTapped()
-                self.dismissAction()
-            }
-            .padding(20)
+            Spacer()
+            Spacer()
+            Spacer()
+            Spacer()
         }
         .onAppear {
             self.onAppearAction()
@@ -177,6 +176,11 @@ struct ContactDetailView: View {
                     Text("Cancel")
                 })
             }
+            
+            DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
+                self.viewModel.deleteButtonTapped()
+                self.dismissAction()
+            }
         }
         )
     
@@ -190,29 +194,16 @@ struct ContactDetailView: View {
         let isDisabled: Bool
         let action: () -> ()
         
-        func buttonBackground() -> Color {
-            isDisabled ? Color.disabledDestructiveButton : Color.destructiveButton
-        }
+        
         var body: some View {
             Button(action: {
                 self.action()
             }, label: {
-                Label(
-                    title: { Text(label) },
-                    icon: { Image(systemName: "trash") }
-                )
-                .frame(width: 350, height: 50, alignment: .center)
-                // all of the above is for both Vision and iOS
-#if os(visionOS) //changes only for VisionOS
-                .foregroundColor(.red)
-#else //changes only for iOS
-                .foregroundColor(.white)
-                .background(buttonBackground())
-                .overlay(RoundedRectangle(cornerRadius: 5).stroke(buttonBackground(), lineWidth: 1))
-                .padding(5)
-#endif
-                
-            }).disabled(isDisabled)
+                Text(label)
+            })
+            .disabled(isDisabled)
+            .foregroundColor(.red)
+            .cornerRadius(8)
         }
     }
     #Preview {
