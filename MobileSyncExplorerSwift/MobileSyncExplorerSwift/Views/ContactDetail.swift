@@ -97,9 +97,11 @@ struct ContactDetailView: View {
         VStack {
             if isEditing {
                 EditView(contact: $viewModel.contact)
+                    .padding()
             } else {
                 VStack {
                     ReadView(contact: viewModel.contact)
+                        .padding()
                     
                     HStack(spacing: 20) {
                         Button(action: {
@@ -201,7 +203,6 @@ struct ContactDetailView: View {
                 self.action()
             }, label: {
                 Text(label)
-                    //.padding()
             })
             .disabled(isDisabled)
             .foregroundColor(.red)
