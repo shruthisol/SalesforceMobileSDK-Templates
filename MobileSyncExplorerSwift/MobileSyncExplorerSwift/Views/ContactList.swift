@@ -109,16 +109,18 @@ struct ContactsTab: View {
                                     Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
                                         .font(.system(size: 20))
                                         .foregroundColor(.white)
-                                        .kerning(0.1)
+                                        .kerning(0.3)
                                 )
 
                             VStack(alignment: .leading) {
                                 Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
                                     .font(.headline)
+                                    .lineLimit(1)
 
                                 Text(ContactHelper.titleStringFromContact(title: contact.title))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
+                                    .lineLimit(1)
                             }
 
                             Spacer()
