@@ -85,10 +85,13 @@ struct ContactDetailView: View {
         self.onAppearAction = onAppear
     }
     
-    init(localId: String?, sObjectDataManager: SObjectDataManager, dismiss: @escaping () -> Void) {
+    init(localId: String?, sObjectDataManager: SObjectDataManager, viewModel: ContactDetailViewModel?, dismiss: @escaping () -> Void) {
         self.viewModel = ContactDetailViewModel(localId: localId, sObjectDataManager: sObjectDataManager)
         self.dismissAction = dismiss
-        if viewModel.isNewContact {
+        if let model = viewModel{
+            self.viewModel = model
+        }
+        if self.viewModel.isNewContact {
             self._isEditing = State(initialValue: true)
         }
     }

@@ -56,7 +56,7 @@ struct ContactListView: View {
                     }
                 
                 NavigationStack {
-                    ContactDetailView(localId: nil, sObjectDataManager: viewModel.sObjectDataManager, dismiss: {})
+                    ContactDetailView(localId: nil, sObjectDataManager: viewModel.sObjectDataManager, viewModel: nil, dismiss: {})
                 }
                 .tabItem {
                     Label("Add", systemImage: "plus")
@@ -95,40 +95,51 @@ struct ContactsTab: View {
                 List(viewModel.sObjectDataManager.contacts.filter { contact in
                     self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
                 }) { contact in
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) { // Animate selection change
-                            self.contactId = contact.id
-                            self.selectedContactId = contact.id
+                    ZStack {
+                        // Background layer
+                        if selectedContactId == contact.id {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(.systemFill))
+                                .frame(maxWidth: .infinity) // Fill the width of the row
+                                .padding(.vertical, -8) // Extend beyond the padding
                         }
-                    }) {
-                        HStack {
-                            Circle()
-                                .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                                .frame(width: 45, height: 45)
-                                .overlay(
-                                    Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                        .font(.system(size: 20))
-                                        .foregroundColor(.white)
-                                        .kerning(0.3)
-                                )
-
-                            VStack(alignment: .leading) {
-                                Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                    .font(.headline)
-                                    .lineLimit(1)
-
-                                Text(ContactHelper.titleStringFromContact(title: contact.title))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
+                        
+                        // Button content
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                self.contactId = contact.id
+                                self.selectedContactId = contact.id
                             }
-
-                            Spacer()
+                        }) {
+                            HStack {
+                                Circle()
+                                    .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                                    .frame(width: 45, height: 45)
+                                    .overlay(
+                                        Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                            .font(.system(size: 20))
+                                            .foregroundColor(.white)
+                                            .kerning(0.3)
+                                    )
+                                
+                                VStack(alignment: .leading) {
+                                    Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                        .font(.headline)
+                                        .lineLimit(1)
+                                    
+                                    Text(ContactHelper.titleStringFromContact(title: contact.title))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 8)
+                        .background(Color.clear)
                     }
-                    .background(self.selectedContactId == contact.id ? Color(.systemFill) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .animation(.easeInOut(duration: 0.2), value: self.selectedContactId)
                 }
@@ -150,7 +161,7 @@ struct ContactsTab: View {
             })
         } detail: {
             if let selectedContact = contactId?.stringValue {
-                ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, dismiss: { self.viewModel.dismissDetail() })
+                ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() })
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Text(viewModel.sObjectDataManager.contacts.isEmpty ? "No Recent Contacts" : "Select a contact to view details")
@@ -163,21 +174,27 @@ struct ContactsTab: View {
     }
 }
 
+
 struct NewContactView: View {
     @Binding var showModal: Bool
     @ObservedObject var sObjectDataManager: SObjectDataManager
-    //@ObservedObject var viewModel: ContactListViewModel
+    @ObservedObject var viewModel: ContactDetailViewModel
 
+    init(showModal: Binding<Bool>, sObjectDataManager: SObjectDataManager) {
+        self.sObjectDataManager = sObjectDataManager
+        self._showModal = showModal
+        self.viewModel = ContactDetailViewModel(localId: nil, sObjectDataManager: sObjectDataManager)
+    }
     var body: some View {
         NavigationView {
-            ContactDetailView(localId: nil, sObjectDataManager: sObjectDataManager, dismiss: {
+            ContactDetailView(localId: nil, sObjectDataManager: sObjectDataManager, viewModel: viewModel, dismiss: {
                 showModal = false
             })
             .navigationBarTitle("New Contact", displayMode: .inline)
             .navigationBarItems(leading: Button("Cancel") {
                 showModal = false
             }, trailing: Button("Save") {
-                // Add save action here
+                viewModel.saveButtonTapped()
                 showModal = false
             })
         }
@@ -259,8 +276,8 @@ struct NewContactView: View {
                 }
             }
             .padding(20)
-            .background(Color(UIColor.systemBackground))
             .frame(width: 300, height: 400)
+            .background(Color(UIColor.systemBackground))
             //.cornerRadius(8)
             .shadow(radius: 10)
             .scaleEffect(isHovered ? 1.05 : 1.0)
