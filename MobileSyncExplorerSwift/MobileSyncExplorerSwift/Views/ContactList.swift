@@ -50,30 +50,17 @@ struct ContactListView: View {
     var body: some View {
         VStack {
             TabView {
-                ContactsTab(viewModel: viewModel, notificationModel: notificationModel, searchTerm: $searchTerm, contactId: $contactId, selectedContactId: $selectedContactId)
+                ContactsTab(viewModel: viewModel, notificationModel: notificationModel, searchTerm: $searchTerm, contactId: $contactId, selectedContactId: $selectedContactId, showNewContact: $showNewContact)
                     .tabItem {
                         Label("Contacts", systemImage: "person.2")
                     }
                 
-                
-                NavigationStack{
-                    ContactDetailView.init(localId: nil, sObjectDataManager: viewModel.sObjectDataManager, dismiss: {
-                    })
+                NavigationStack {
+                    ContactDetailView(localId: nil, sObjectDataManager: viewModel.sObjectDataManager, dismiss: {})
                 }
                 .tabItem {
                     Label("Add", systemImage: "plus")
                 }
-                
-                
-//                Button(action: {
-//                    self.syncAlertPresented = true;
-//                    self.showSyncAlert()
-//                }) {
-//                    Label("Sync", systemImage: "arrow.clockwise")
-//                }
-//                .tabItem {
-//                    Label("Sync", systemImage: "arrow.clockwise")
-//                }
                 
                 CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
                     .tabItem {
@@ -81,42 +68,16 @@ struct ContactListView: View {
                     }
                 
                 NavigationStack {
-                        NotificationList(model: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                    NotificationList(model: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                }
+                .tabItem {
+                    VStack {
+                        NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                        Text("Notifications")
                     }
-                    .tabItem {
-                        VStack {
-                            NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
-                            Text("Notifications")
-                        }
-                    }
-                
-                
-//                Button(action: {
-//                    self.showNotifications = true
-//                }) {
-//                    Label("Notifications", systemImage: "bell")
-//                }
-//                .tabItem {
-//                    Label("Notifications", systemImage: "bell")
-//                }
-//                .sheet(isPresented: $showNotifications) {
-//                    NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
-//                    //.navigationBarItems(trailing: NavBarButtons(viewModel: viewModel, notificationModel: notificationModel))
-//                }
+                }
             }
-            // (Adding in this alert crashes the app
-            //        }
-                        //        alert(isPresented: $syncAlertPresented, content: {
-                        //                        Alert(title: Text("Sync Complete"),
-                        //                              message: Text("Data synced successfully."),
-                        //                              dismissButton: .default(Text("OK")))
-                        //                    })
         }
-    }
-
-    private func showSyncAlert() {
-        self.viewModel.syncUpDown() // Perform sync action
-        self.syncAlertPresented = true // Show the sync alert
     }
 }
 
@@ -126,7 +87,8 @@ struct ContactsTab: View {
     @Binding var searchTerm: String
     @Binding var contactId: ContactSObjectData.ID?
     @Binding var selectedContactId: ContactSObjectData.ID?
-    
+    @Binding var showNewContact: Bool
+
     var body: some View {
         NavigationSplitView {
             VStack {
@@ -142,11 +104,12 @@ struct ContactsTab: View {
                         HStack {
                             Circle()
                                 .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                                .frame(width: 40, height: 40)
+                                .frame(width: 45, height: 45)
                                 .overlay(
                                     Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
                                         .font(.system(size: 20))
                                         .foregroundColor(.white)
+                                        .kerning(0.1)
                                 )
 
                             VStack(alignment: .leading) {
@@ -160,8 +123,8 @@ struct ContactsTab: View {
 
                             Spacer()
                         }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 25)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 8)
                     }
                     .background(self.selectedContactId == contact.id ? Color(.systemFill) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -178,6 +141,11 @@ struct ContactsTab: View {
                 self.notificationModel.fetchNotifications()
             }
             .navigationTitle("Contacts")
+            .navigationBarItems(trailing: Button(action: {
+                showNewContact = true
+            }) {
+                Image(systemName: "plus")
+            })
         } detail: {
             if let selectedContact = contactId?.stringValue {
                 ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, dismiss: { self.viewModel.dismissDetail() })
@@ -187,9 +155,33 @@ struct ContactsTab: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .sheet(isPresented: $showNewContact) {
+            NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager)
+        }
     }
 }
 
+struct NewContactView: View {
+    @Binding var showModal: Bool
+    @ObservedObject var sObjectDataManager: SObjectDataManager
+    //@ObservedObject var viewModel: ContactListViewModel
+
+    var body: some View {
+        NavigationView {
+            ContactDetailView(localId: nil, sObjectDataManager: sObjectDataManager, dismiss: {
+                showModal = false
+            })
+            .navigationBarTitle("New Contact", displayMode: .inline)
+            .navigationBarItems(leading: Button("Cancel") {
+                showModal = false
+            }, trailing: Button("Save") {
+                // Add save action here
+                showModal = false
+            })
+        }
+    }
+    
+}
 
     struct ContactBox: View {
         var contact: ContactSObjectData
@@ -478,7 +470,7 @@ struct ContactsTab: View {
         }
     }
     
-    struct NotificationBell: View {
+struct NotificationBell: View {
         @ObservedObject var notificationModel: NotificationListModel
         var sObjectDataManager: SObjectDataManager
         
@@ -524,30 +516,30 @@ struct ContactsTab: View {
     
 //    struct SearchBar: UIViewRepresentable {
 //        @Binding var text: String
-//        
+//
 //        class Coordinator: NSObject, UISearchBarDelegate {
 //            @Binding var text: String
-//            
+//
 //            init(text: Binding<String>) {
 //                _text = text
 //            }
-//            
+//
 //            func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
 //                text = searchText
 //            }
 //        }
-//        
+//
 //        func makeCoordinator() -> Coordinator {
 //            return Coordinator(text: $text)
 //        }
-//        
+//
 //        func makeUIView(context: UIViewRepresentableContext<SearchBar>) -> UISearchBar {
 //            let searchBar = UISearchBar()
 //            searchBar.placeholder = "Search"
 //            searchBar.delegate = context.coordinator
 //            return searchBar
 //        }
-//        
+//
 //        func updateUIView(_ uiView: UISearchBar, context: UIViewRepresentableContext<SearchBar>) {
 //            uiView.text = text
 //        }
@@ -587,4 +579,3 @@ struct ContactsTab: View {
         return ContactListView(sObjectDataManager: sObjectManager)
     }
     
-

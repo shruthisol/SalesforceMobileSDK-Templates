@@ -147,6 +147,7 @@ struct ContactDetailView: View {
             Spacer()
             Spacer()
             Spacer()
+            
         }
         .onAppear {
             self.onAppearAction()
@@ -200,6 +201,7 @@ struct ContactDetailView: View {
                 self.action()
             }, label: {
                 Text(label)
+                    //.padding()
             })
             .disabled(isDisabled)
             .foregroundColor(.red)
