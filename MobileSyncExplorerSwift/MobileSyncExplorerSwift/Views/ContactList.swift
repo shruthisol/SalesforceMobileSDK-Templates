@@ -55,13 +55,6 @@ struct ContactListView: View {
                         Label("Contacts", systemImage: "person.2")
                     }
                 
-                NavigationStack {
-                    ContactDetailView(localId: nil, sObjectDataManager: viewModel.sObjectDataManager, viewModel: nil, dismiss: {})
-                }
-                .tabItem {
-                    Label("Add", systemImage: "plus")
-                }
-                
                 CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
@@ -92,58 +85,61 @@ struct ContactsTab: View {
     var body: some View {
         NavigationSplitView {
             VStack {
-                List(viewModel.sObjectDataManager.contacts.filter { contact in
-                    self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
-                }) { contact in
-                    ZStack {
-                        // Background layer
-                        if selectedContactId == contact.id {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemFill))
-                                .frame(maxWidth: .infinity) // Fill the width of the row
-                                .padding(.vertical, -8) // Extend beyond the padding
-                        }
-                        
-                        // Button content
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                self.contactId = contact.id
-                                self.selectedContactId = contact.id
+                VStack {
+                    List(viewModel.sObjectDataManager.contacts.filter { contact in
+                        self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
+                    }) { contact in
+                        ZStack {
+                            // Background layer
+                            if selectedContactId == contact.id {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.gray)
+                                    .frame(maxWidth: .infinity) // Fill the width of the row
+                                    .padding(.vertical, -8) // Extend beyond the padding
                             }
-                        }) {
-                            HStack {
-                                Circle()
-                                    .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                                    .frame(width: 45, height: 45)
-                                    .overlay(
-                                        Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                            .font(.system(size: 20))
-                                            .foregroundColor(.white)
-                                            .kerning(0.3)
-                                    )
-                                
-                                VStack(alignment: .leading) {
-                                    Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    
-                                    Text(ContactHelper.titleStringFromContact(title: contact.title))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
+                            
+                            // Button content
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    self.contactId = contact.id
+                                    self.selectedContactId = contact.id
                                 }
-                                
-                                Spacer()
+                            }) {
+                                HStack {
+                                    Circle()
+                                        .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                                        .frame(width: 45, height: 45)
+                                        .overlay(
+                                            Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                                .font(.system(size: 20))
+                                                .foregroundColor(.white)
+                                                .kerning(0.3)
+                                        )
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                        
+                                        Text(ContactHelper.titleStringFromContact(title: contact.title))
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 8)
+                                .background(Color.clear)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 8)
                         }
-                        .background(Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .animation(.easeInOut(duration: 0.2), value: self.selectedContactId)
+                        .listRowBackground(Color.clear) // Set the background of the row to clear
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .animation(.easeInOut(duration: 0.2), value: self.selectedContactId)
+                    .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
                 }
-                .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
             }
             .frame(minWidth: 200)
             .onAppear {
@@ -160,7 +156,7 @@ struct ContactsTab: View {
                 Image(systemName: "plus")
             })
         } detail: {
-            if let selectedContact = contactId?.stringValue {
+            if let selectedContact = selectedContactId?.stringValue {
                 ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() })
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -169,7 +165,7 @@ struct ContactsTab: View {
             }
         }
         .sheet(isPresented: $showNewContact) {
-            NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager)
+            NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager, selectedContactID: $selectedContactId)
         }
     }
 }
@@ -177,12 +173,14 @@ struct ContactsTab: View {
 
 struct NewContactView: View {
     @Binding var showModal: Bool
+    @Binding var selectedContactID: ContactSObjectData.ID?
     @ObservedObject var sObjectDataManager: SObjectDataManager
     @ObservedObject var viewModel: ContactDetailViewModel
 
-    init(showModal: Binding<Bool>, sObjectDataManager: SObjectDataManager) {
+    init(showModal: Binding<Bool>, sObjectDataManager: SObjectDataManager, selectedContactID : Binding <ContactSObjectData.ID?>) {
         self.sObjectDataManager = sObjectDataManager
         self._showModal = showModal
+        self._selectedContactID = selectedContactID
         self.viewModel = ContactDetailViewModel(localId: nil, sObjectDataManager: sObjectDataManager)
     }
     var body: some View {
@@ -194,7 +192,9 @@ struct NewContactView: View {
             .navigationBarItems(leading: Button("Cancel") {
                 showModal = false
             }, trailing: Button("Save") {
-                viewModel.saveButtonTapped()
+                if let result = viewModel.saveButtonTapped(){
+                    selectedContactID = result
+                }
                 showModal = false
             })
         }

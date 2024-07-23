@@ -89,11 +89,17 @@ class ContactDetailViewModel: ObservableObject {
         }
     }
 
-    func saveButtonTapped() {
+    func saveButtonTapped() -> ContactSObjectData.ID? {
         if self.isNewContact {
-            sObjectDataManager.createLocalData(contact)
+            let data = sObjectDataManager.createLocalData(contact)
+            if let newContact = data?.first as? [String : Any]{
+                let user = ContactSObjectData(soupDict: newContact)
+                return user.id
+            }
         } else {
             sObjectDataManager.updateLocalData(contact)
         }
+        return nil
     }
+    
 }

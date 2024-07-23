@@ -160,27 +160,30 @@ struct ContactDetailView: View {
         .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
         .navigationBarItems(trailing:
                                 HStack {
-            Button(action: {
-                if self.isEditing {
-                    self.viewModel.saveButtonTapped()
-                    self.dismissAction()
-                }
-                withAnimation {
-                    self.isEditing.toggle()
-                }
-            }, label: {
-                self.isEditing ? Text("Save") : Text("Edit")
-            })
-            .padding(.trailing, 10)
-            
-            if self.isEditing {
+            if !self.viewModel.isNewContact{
                 Button(action: {
+                    
+                    if self.isEditing {
+                        self.viewModel.saveButtonTapped()
+                        self.dismissAction()
+                    }
                     withAnimation {
                         self.isEditing.toggle()
                     }
                 }, label: {
-                    Text("Cancel")
+                    self.isEditing ? Text("Save") : Text("Edit")
                 })
+                .padding(.trailing, 10)
+                
+                if self.isEditing {
+                    Button(action: {
+                        withAnimation {
+                            self.isEditing.toggle()
+                        }
+                    }, label: {
+                        Text("Cancel")
+                    })
+                }
             }
             
             DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {

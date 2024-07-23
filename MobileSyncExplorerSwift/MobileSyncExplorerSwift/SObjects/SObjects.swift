@@ -342,16 +342,17 @@ class SObjectDataManager: ObservableObject {
             .store(in: &cancellableSet)
     }
 
-    func createLocalData(_ newData: SObjectData?) {
+    func createLocalData(_ newData: SObjectData?) -> [[AnyHashable: Any]]? {
         guard let newData = newData, let store = store else {
-            return
+            return nil
         }
         newData.updateSoup(forFieldName: kSyncTargetLocal, fieldValue: true)
         newData.updateSoup(forFieldName: kSyncTargetLocallyCreated, fieldValue: true)
         let sobjectSpec = type(of: newData).dataSpec()
 
-        store.upsert(entries: [newData.soupDict], forSoupNamed: (sobjectSpec?.soupName)!)
+        let result = store.upsert(entries: [newData.soupDict], forSoupNamed: (sobjectSpec?.soupName)!)
         loadLocalData()
+        return result
     }
 
     func updateLocalData(_ updatedData: SObjectData?) {
