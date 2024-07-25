@@ -197,7 +197,6 @@ struct NewContactView: View {
             })
         }
     }
-    
 }
 
     struct ContactBox: View {
