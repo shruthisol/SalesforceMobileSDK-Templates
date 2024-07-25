@@ -157,6 +157,7 @@ struct ContactsTab: View {
         }
 }
 
+
 struct NewContactView: View {
     @Binding var showModal: Bool
     @Binding var selectedContactID: ContactSObjectData.ID?
