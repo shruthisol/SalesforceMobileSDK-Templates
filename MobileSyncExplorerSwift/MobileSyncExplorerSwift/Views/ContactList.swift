@@ -42,6 +42,7 @@ struct ContactListView: View {
     @State private var customActionSheetPresented = false
     @State private var logoutAlertPresented = false
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     init(sObjectDataManager: SObjectDataManager, selectedRecord: String? = nil, newContact: Bool = false, searchFocused: Bool = false) {
         self.viewModel = ContactListViewModel(sObjectDataManager: sObjectDataManager, presentNewContact: newContact, selectedRecord: selectedRecord)
@@ -81,65 +82,62 @@ struct ContactsTab: View {
     @Binding var contactId: ContactSObjectData.ID?
     @Binding var selectedContactId: ContactSObjectData.ID?
     @Binding var showNewContact: Bool
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             VStack {
-                VStack {
-                    List(viewModel.sObjectDataManager.contacts.filter { contact in
-                        self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
-                    }) { contact in
-                        ZStack {
-                            // Background layer
-                            if selectedContactId == contact.id {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.gray)
-                                    .frame(maxWidth: .infinity) // Fill the width of the row
-                                    .padding(.vertical, -8) // Extend beyond the padding
-                            }
-                            
-                            // Button content
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    self.contactId = contact.id
-                                    self.selectedContactId = contact.id
-                                }
-                            }) {
-                                HStack {
-                                    Circle()
-                                        .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                                        .frame(width: 45, height: 45)
-                                        .overlay(
-                                            Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                                .font(.system(size: 20))
-                                                .foregroundColor(.white)
-                                                .kerning(0.3)
-                                        )
-                                    
-                                    VStack(alignment: .leading) {
-                                        Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                            .font(.headline)
-                                            .lineLimit(1)
-                                        
-                                        Text(ContactHelper.titleStringFromContact(title: contact.title))
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                    
-                                    Spacer()
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 8)
-                                .background(Color.clear)
-                            }
+                List(viewModel.sObjectDataManager.contacts.filter { contact in
+                    self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
+                }) { contact in
+                    ZStack {
+                        if selectedContactId == contact.id {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.gray)
+                                .frame(maxWidth: .infinity) // Fill the width of the row
+                                .padding(.vertical, -8) // Extend beyond the padding
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .animation(.easeInOut(duration: 0.2), value: self.selectedContactId)
-                        .listRowBackground(Color.clear) // Set the background of the row to clear
+
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                self.contactId = contact.id
+                                self.selectedContactId = contact.id
+                            }
+                        }) {
+                            HStack {
+                                Circle()
+                                    .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                                    .frame(width: 45, height: 45)
+                                    .overlay(
+                                        Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                            .font(.system(size: 20))
+                                            .foregroundColor(.white)
+                                            .kerning(0.3)
+                                    )
+
+                                VStack(alignment: .leading) {
+                                    Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                        .font(.headline)
+                                        .lineLimit(1)
+
+                                    Text(ContactHelper.titleStringFromContact(title: contact.title))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
+                            .background(Color.clear)
+                        }
                     }
-                    .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .animation(.easeInOut(duration: 0.2), value: self.selectedContactId)
+                    .listRowBackground(Color.clear) // Set the background of the row to clear
                 }
+                .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
             }
             .frame(minWidth: 200)
             .onAppear {
@@ -164,12 +162,12 @@ struct ContactsTab: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showNewContact) {
             NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager, selectedContactID: $selectedContactId)
         }
     }
 }
-
 
 struct NewContactView: View {
     @Binding var showModal: Bool
@@ -532,37 +530,6 @@ struct NotificationBell: View {
             .padding([.all], 10)
         }
     }
-    
-//    struct SearchBar: UIViewRepresentable {
-//        @Binding var text: String
-//
-//        class Coordinator: NSObject, UISearchBarDelegate {
-//            @Binding var text: String
-//
-//            init(text: Binding<String>) {
-//                _text = text
-//            }
-//
-//            func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//                text = searchText
-//            }
-//        }
-//
-//        func makeCoordinator() -> Coordinator {
-//            return Coordinator(text: $text)
-//        }
-//
-//        func makeUIView(context: UIViewRepresentableContext<SearchBar>) -> UISearchBar {
-//            let searchBar = UISearchBar()
-//            searchBar.placeholder = "Search"
-//            searchBar.delegate = context.coordinator
-//            return searchBar
-//        }
-//
-//        func updateUIView(_ uiView: UISearchBar, context: UIViewRepresentableContext<SearchBar>) {
-//            uiView.text = text
-//        }
-//    }
     
     struct InspectorViewControllerWrapper: UIViewControllerRepresentable {
         typealias UIViewControllerType = InspectorViewController
