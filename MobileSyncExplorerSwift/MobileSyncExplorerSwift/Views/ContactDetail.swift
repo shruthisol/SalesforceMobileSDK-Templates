@@ -88,7 +88,7 @@ struct ContactDetailView: View {
     init(localId: String?, sObjectDataManager: SObjectDataManager, viewModel: ContactDetailViewModel?, dismiss: @escaping () -> Void) {
         self.viewModel = ContactDetailViewModel(localId: localId, sObjectDataManager: sObjectDataManager)
         self.dismissAction = dismiss
-        if let model = viewModel{
+        if let model = viewModel {
             self.viewModel = model
         }
         if self.viewModel.isNewContact {
@@ -148,10 +148,6 @@ struct ContactDetailView: View {
             }
             
             Spacer()
-            Spacer()
-            Spacer()
-            Spacer()
-            Spacer()
             
         }
         .onAppear {
@@ -159,41 +155,40 @@ struct ContactDetailView: View {
         }
         .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
         .navigationBarItems(trailing:
-                                HStack {
-            if !self.viewModel.isNewContact{
-                Button(action: {
-                    
-                    if self.isEditing {
-                        self.viewModel.saveButtonTapped()
-                        self.dismissAction()
-                    }
-                    withAnimation {
-                        self.isEditing.toggle()
-                    }
-                }, label: {
-                    self.isEditing ? Text("Save") : Text("Edit")
-                })
-                .padding(.trailing, 10)
-                
-                if self.isEditing {
+            HStack {
+                if !self.viewModel.isNewContact {
                     Button(action: {
+                        if self.isEditing {
+                            self.viewModel.saveButtonTapped()
+                            self.dismissAction()
+                        }
                         withAnimation {
                             self.isEditing.toggle()
                         }
                     }, label: {
-                        Text("Cancel")
+                        self.isEditing ? Text("Save") : Text("Edit")
                     })
+                    .padding(.trailing, 10)
+                    
+                    if self.isEditing {
+                        Button(action: {
+                            withAnimation {
+                                self.isEditing.toggle()
+                            }
+                        }, label: {
+                            Text("Cancel")
+                        })
+                    }
+                }
+                
+                DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
+                    self.viewModel.deleteButtonTapped()
+                    self.dismissAction()
                 }
             }
-            
-            DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
-                self.viewModel.deleteButtonTapped()
-                self.dismissAction()
-            }
-        }
         )
-    
 }
+
 
 
     

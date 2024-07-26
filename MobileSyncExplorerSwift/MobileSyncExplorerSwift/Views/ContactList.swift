@@ -85,76 +85,78 @@ struct ContactsTab: View {
     @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                VStack {
-                    List(selection: $contactId) {
-                        ForEach(viewModel.sObjectDataManager.contacts.filter { contact in
-                            self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
-                        }) { contact in
-                            NavigationLink(
-                                destination: ContactDetailView(localId: contact.id.stringValue, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() }),
-                                tag: contact.id,
-                                selection: $contactId
-                            ) {
-                                HStack {
-                                    Circle()
-                                        .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                                        .frame(width: 45, height: 45)
-                                        .overlay(
-                                            Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                                .font(.system(size: 20))
-                                                .foregroundColor(.white)
-                                                .kerning(0.3)
-                                        )
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            VStack {
+                List(selection: $contactId) {
+                    ForEach(viewModel.sObjectDataManager.contacts.filter { contact in
+                        self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
+                    }) { contact in
+                        NavigationLink(
+                            destination: ContactDetailView(localId: contact.id.stringValue, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() }),
+                            tag: contact.id,
+                            selection: $contactId
+                        ) {
+                            HStack {
+                                Circle()
+                                    .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                                    .frame(width: 45, height: 45)
+                                    .overlay(
+                                        Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                            .font(.system(size: 20))
+                                            .foregroundColor(.white)
+                                            .kerning(0.3)
+                                    )
 
-                                    VStack(alignment: .leading) {
-                                        Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                            .font(.headline)
-                                            .lineLimit(1)
+                                VStack(alignment: .leading) {
+                                    Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                                        .font(.headline)
+                                        .lineLimit(1)
 
-                                        Text(ContactHelper.titleStringFromContact(title: contact.title))
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-
-                                    Spacer()
+                                    Text(ContactHelper.titleStringFromContact(title: contact.title))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
                                 }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 8)
-                                .background(Color.clear)
+
+                                Spacer()
                             }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
+                            .background(Color.clear)
                         }
                     }
-                    .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
                 }
-                .frame(minWidth: 200)
-                .onAppear {
+                .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
+            }
+            .frame(minWidth: 200)
+            .onAppear {
+                if UIDevice.current.userInterfaceIdiom != .phone {
                     if let firstContact = viewModel.sObjectDataManager.contacts.first {
                         self.contactId = firstContact.id
                     }
-                    self.notificationModel.fetchNotifications()
                 }
-                .navigationTitle("Contacts")
-                .navigationBarItems(trailing: Button(action: {
-                    showNewContact = true
-                }) {
-                    Image(systemName: "plus")
-                })
-            } detail: {
-                if let selectedContact = contactId?.stringValue {
-                    ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() })
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    Text(viewModel.sObjectDataManager.contacts.isEmpty ? "No Recent Contacts" : "Select a contact to view details")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                self.notificationModel.fetchNotifications()
             }
-            .navigationSplitViewStyle(.balanced)
-            .sheet(isPresented: $showNewContact) {
-                NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager, selectedContactID: $contactId)
+            .navigationTitle("Contacts")
+            .navigationBarItems(trailing: Button(action: {
+                showNewContact = true
+            }) {
+                Image(systemName: "plus")
+            })
+        } detail: {
+            if let selectedContact = contactId?.stringValue {
+                ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() })
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Text(viewModel.sObjectDataManager.contacts.isEmpty ? "No Recent Contacts" : "Select a contact to view details")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .navigationSplitViewStyle(.balanced)
+        .sheet(isPresented: $showNewContact) {
+            NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager, selectedContactID: $contactId)
+        }
+    }
 }
 
 
