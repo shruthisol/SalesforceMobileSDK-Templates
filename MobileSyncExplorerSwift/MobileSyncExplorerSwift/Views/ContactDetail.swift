@@ -153,6 +153,7 @@ struct ContactDetailView: View {
                     .padding(.bottom, 30)
                 }
                 //Background color of just buttons
+                
             }
             
             Spacer()
