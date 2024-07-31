@@ -88,16 +88,15 @@ class ContactListViewModel: ObservableObject {
         if let syncUp = sObjectDataManager.getSync(sObjectDataManager.kSyncUpName), let syncDown = sObjectDataManager.getSync(sObjectDataManager.kSyncDownName), syncUp.isRunning() || syncDown.isRunning() {
             return
         }
-        //createAlert(title: "Syncing with Salesforce", message: nil, stopButton: false)
         sObjectDataManager.syncUpDown(completion: { [weak self] success in
-//            if success {
-//                self?.updateAlert(info: "Sync Complete!", okayButton: false)
-//            } else {
-//                self?.updateAlert(info: "Sync Failed!", okayButton: false)
-//            }
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-//                self?.alertContent = nil
-//            }
+            if success {
+                self?.createAlert(title: "Sync Complete!", message: nil, stopButton: false)
+            } else {
+                self?.createAlert(title: "Sync Failed!", message: nil, stopButton: false)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self?.alertContent = nil
+            }
         })
     }
 
@@ -125,7 +124,7 @@ class ContactListViewModel: ObservableObject {
 
     func alertStopTapped() {
         stopSyncManager()
-        updateAlert(info: "\nRequesting sync manager stop")
+        createAlert(title: "Sync Stopped", message: "\nRequesting sync manager stop", stopButton: false, okayButton: true)
     }
 
     func showInfo() {
@@ -144,16 +143,18 @@ class ContactListViewModel: ObservableObject {
         sObjectDataManager.cleanGhosts(onError: { [weak self] mobileSyncError in
             self?.updateAlert(info: "Failed with error \(mobileSyncError)")
         }, onValue: { [weak self] numRecords in
-            self?.updateAlert(info: "Clean ghosts: \(numRecords) records")
+            self?.updateAlert(info: "Clean ghosts: \(numRecords) records", okayButton: true)
         })
     }
 
     func clearLocalData() {
         sObjectDataManager.clearLocalData()
+        createAlert(title: "Local Data Cleared", message: "All local data has been cleared.", stopButton: false, okayButton: true)
     }
 
     func refreshLocalData() {
         sObjectDataManager.loadLocalData()
+        createAlert(title: "Local Data Refreshed", message: "Local data has been refreshed.", stopButton: false, okayButton: true)
     }
 
     func syncDown() {
@@ -165,7 +166,7 @@ class ContactListViewModel: ObservableObject {
     }
 
     func resumeSyncManager() {
-        createAlert(title: "Resuming Sync Manager", message: nil, stopButton: true)
+        createAlert(title: "Resuming Sync Manager", message: nil, stopButton: true, okayButton: true)
         do {
             try sObjectDataManager.resumeSyncManager { [weak self] syncState in
                 let isLast = syncState.status != .running
@@ -178,11 +179,12 @@ class ContactListViewModel: ObservableObject {
 
     func stopSyncManager() {
         sObjectDataManager.stopSyncManager()
+        createAlert(title: "Sync Manager Stopped", message: "The Sync Manager has been stopped successfully.", stopButton: false, okayButton: true)
     }
 
     func stopAction() {
         sObjectDataManager.stopSyncManager()
-        updateAlert(info: "\nRequesting sync manager stop")
+        createAlert(title: "Sync Manager Stopping", message: "Requesting sync manager stop", stopButton: false, okayButton: true)
     }
     
     func itemProvider(contact: ContactSObjectData) -> NSItemProvider {

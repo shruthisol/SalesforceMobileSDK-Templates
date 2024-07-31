@@ -71,7 +71,26 @@ struct ContactListView: View {
                     }
                 }
             }
+            if let alertContent = viewModel.alertContent {
+                            StatusAlert(viewModel: viewModel)
+                                .frame(maxWidth: 300)
+                                .background(Color(UIColor.secondarySystemBackground))
+                                .cornerRadius(20)
+                                .shadow(radius: 10)
+                                .padding()
+                        }
         }
+        .sheet(isPresented: $customActionSheetPresented) {
+                    CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
+                }
+        
+        .alert(isPresented: $logoutAlertPresented, content: {
+                    Alert(title: Text("Are you sure you want to log out?"),
+                          primaryButton: .destructive(Text("Logout"), action: {
+                              UserAccountManager.shared.logout()
+                          }),
+                          secondaryButton: .cancel())
+                })
     }
 }
 
@@ -218,7 +237,7 @@ struct NewContactView: View {
                 // Contact Title
                 Text(ContactHelper.titleStringFromContact(title: contact.title))
                     .font(.title)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(UIColor.label))
                     .frame(height: 20) // Fixed height for title
                 
                 
@@ -304,74 +323,72 @@ struct NewContactView: View {
         }
     }
     
-    struct StatusAlert: View {
-        @ObservedObject var viewModel: ContactListViewModel
-        
-        func twoButtonDisplay() -> Bool {
-            if let alertContent = viewModel.alertContent {
-                return alertContent.okayButton && alertContent.stopButton
-            }
-            return false
+struct StatusAlert: View {
+    @ObservedObject var viewModel: ContactListViewModel
+
+    func twoButtonDisplay() -> Bool {
+        if let alertContent = viewModel.alertContent {
+            return alertContent.okayButton && alertContent.stopButton
         }
-        
-        func stopButton() -> Bool {
-            return viewModel.alertContent?.stopButton ?? false
-        }
-        
-        func okayButton() -> Bool {
-            return viewModel.alertContent?.okayButton ?? false
-        }
-        
-        var body: some View {
-            ZStack {
-                Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
-                VStack {
-                    Text(viewModel.alertContent?.title ?? "").bold()
-                    Text(viewModel.alertContent?.message ?? "").lineLimit(nil)
-                    
-                    if stopButton() || okayButton() {
-                        Divider()
-                        HStack {
-                            if stopButton() {
-                                if twoButtonDisplay() {
-                                    Spacer()
-                                }
-                                Button(action: {
-                                    self.viewModel.alertStopTapped()
-                                }, label: {
-                                    Text("Stop").foregroundColor(Color.blue)
-                                })
-                            }
-                            
-                            if twoButtonDisplay() {
-                                Spacer()
-                                Divider()
-                                Spacer()
-                            }
-                            
-                            if okayButton() {
-                                Button(action: {
-                                    self.viewModel.alertOkTapped()
-                                }, label: {
-                                    Text("Ok").foregroundColor(Color.blue)
-                                })
-                                if twoButtonDisplay() {
-                                    Spacer()
-                                }
-                            }
+        return false
+    }
+
+    func stopButton() -> Bool {
+        return viewModel.alertContent?.stopButton ?? false
+    }
+
+    func okayButton() -> Bool {
+        return viewModel.alertContent?.okayButton ?? false
+    }
+
+    var body: some View {
+        VStack {
+            Text(viewModel.alertContent?.title ?? "").bold()
+            Text(viewModel.alertContent?.message ?? "").lineLimit(nil)
+            
+            if stopButton() || okayButton() {
+                Divider()
+                HStack {
+                    if stopButton() {
+                        if twoButtonDisplay() {
+                            Spacer()
                         }
-                        .frame(height: 30)
+                        Button(action: {
+                            self.viewModel.alertStopTapped()
+                        }, label: {
+                            Text("Stop").foregroundColor(Color.blue)
+                        })
+                    }
+                    
+                    if twoButtonDisplay() {
+                        Spacer()
+                        Divider()
+                        Spacer()
+                    }
+
+                    if okayButton() {
+                        Button(action: {
+                            self.viewModel.alertOkTapped()
+                        }, label: {
+                            Text("Ok").foregroundColor(Color.blue)
+                        })
+                        if twoButtonDisplay() {
+                            Spacer()
+                        }
                     }
                 }
-                .padding(10)
-                .frame(maxWidth: 300, minHeight: 100)
-                .background(Color(UIColor.secondarySystemBackground))
-                .opacity(1.0)
-                .foregroundColor(Color(UIColor.label))
-                .cornerRadius(20)
+                .frame(height: 30)
             }
         }
+        .padding(10)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(20)
+        .shadow(radius: 10)
+        .opacity(1.0)
+        .foregroundColor(Color(UIColor.label))
     }
+}
+
     
     enum ModalAction: Identifiable {
         case switchUser
@@ -382,100 +399,96 @@ struct NewContactView: View {
         }
     }
     
-    struct NavBarButtons: View {
-        @ObservedObject var viewModel: ContactListViewModel
-        @ObservedObject var notificationModel: NotificationListModel
-        @State private var modalPresented: ModalAction?
-        @State private var customActionSheetPresented = false
-        @State private var logoutAlertPresented = false
-        @State private var syncAlertPresented = false // New state for sync alert
-        @Environment(\.presentationMode) var presentationMode
-        
-        var body: some View {
-            ZStack {
-                HStack {
-                    Button(action: {
-                        viewModel.newContactToggled()
-                    }, label: { Image("plusButton").renderingMode(.template) })
-                    
-                    Button(action: {
-                        self.showSyncAlert()
-                    }, label: { Image("sync").renderingMode(.template) })
-                    
-                    Button(action: {
-                        self.customActionSheetPresented = true
-                    }, label: { Image("setting").renderingMode(.template) })
-                    .sheet(isPresented: $customActionSheetPresented) {
-                        CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
-                            .frame(width: 400, height: 500) // Adjust the size of the settings view
+
+struct NavBarButtons: View {
+    @ObservedObject var viewModel: ContactListViewModel
+    @ObservedObject var notificationModel: NotificationListModel
+    @State private var modalPresented: ModalAction?
+    @State private var customActionSheetPresented = false
+    @State private var logoutAlertPresented = false
+
+    var body: some View {
+        HStack {
+            Button(action: {
+                viewModel.newContactToggled()
+            }, label: { Image("plusButton").renderingMode(.template) })
+            Button(action: {
+                self.viewModel.syncUpDown()
+            }, label: { Image("sync").renderingMode(.template) })
+            Button(action: {
+                self.customActionSheetPresented = true
+            }, label: { Image("setting").renderingMode(.template) })
+                .sheet(item: $modalPresented) { action in
+                    switch action {
+                    case .switchUser:
+                        SalesforceUserManagementViewControllerWrapper()
+                    case .inspectDB:
+                        if let store = self.viewModel.sObjectDataManager.store {
+                            InspectorViewControllerWrapper(store: store)
+                        }
                     }
-                    
-                    NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
-                    
                 }
-            }
-            .alert(isPresented: $syncAlertPresented, content: {
-                Alert(title: Text("Sync Complete"),
-                      message: Text("Data synced successfully."),
-                      dismissButton: .default(Text("OK")))
-            })
-        }
-        
-        private func showSyncAlert() {
-            self.viewModel.syncUpDown() // Perform sync action
-            self.syncAlertPresented = true // Show the sync alert
-        }
+            NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+        }.alert(isPresented: $logoutAlertPresented, content: {
+            Alert(title: Text("Are you sure you want to log out?"),
+                  primaryButton: .destructive(Text("Logout"), action: {
+                      UserAccountManager.shared.logout()
+                  }),
+                  secondaryButton: .cancel())
+        })
     }
+}
+
+struct CustomActionSheet: View {
+    @ObservedObject var viewModel: ContactListViewModel
+    @Binding var logoutAlertPresented: Bool
+    @Binding var modalPresented: ModalAction?
+    @Environment(\.presentationMode) var presentationMode
     
-    struct CustomActionSheet: View {
-        @ObservedObject var viewModel: ContactListViewModel
-        @Binding var logoutAlertPresented: Bool
-        @Binding var modalPresented: ModalAction?
-        @Environment(\.presentationMode) var presentationMode
-        
-        var body: some View {
-            NavigationStack {
-                List {
-                    Button("Show Info") {
-                        self.viewModel.showInfo()
-                    }
-                    Button("Clear Local Data") {
-                        self.viewModel.clearLocalData()
-                    }
-                    Button("Refresh Local Data") {
-                        self.viewModel.refreshLocalData()
-                    }
-                    Button("Sync Down") {
-                        self.viewModel.syncDown()
-                    }
-                    Button("Sync Up") {
-                        self.viewModel.syncUp()
-                    }
-                    Button("Clean Sync Ghosts") {
-                        self.viewModel.cleanGhosts()
-                    }
-                    Button("Stop Sync Manager") {
-                        self.viewModel.stopSyncManager()
-                    }
-                    Button("Resume Sync Manager") {
-                        self.viewModel.resumeSyncManager()
-                    }
-                    Button("Logout") {
-                        self.logoutAlertPresented = true
-                    }
-                    Button("Switch User") {
-                        self.modalPresented = ModalAction.switchUser
-                    }
-                    Button("Inspect DB") {
-                        self.modalPresented = ModalAction.inspectDB
-                    }
+    var body: some View {
+        NavigationStack {
+            List {
+                Button("Show Info") {
+                    self.viewModel.showInfo()
                 }
-                .navigationTitle("Additional Actions")
-                .navigationBarTitleDisplayMode(.inline)
-                .listStyle(InsetGroupedListStyle())
+                Button("Clear Local Data") {
+                    self.viewModel.clearLocalData()
+                }
+                Button("Refresh Local Data") {
+                    self.viewModel.refreshLocalData()
+                }
+                Button("Sync Down") {
+                    self.viewModel.syncDown()
+                }
+                Button("Sync Up") {
+                    self.viewModel.syncUp()
+                }
+                Button("Clean Sync Ghosts") {
+                    self.viewModel.cleanGhosts()
+                }
+                Button("Stop Sync Manager") {
+                    self.viewModel.stopSyncManager()
+                }
+                Button("Resume Sync Manager") {
+                    self.viewModel.resumeSyncManager()
+                }
+                Button("Logout") {
+                    self.logoutAlertPresented = true
+                }
+                Button("Switch User") {
+                    self.modalPresented = ModalAction.switchUser
+                }
+                Button("Inspect DB") {
+                    self.modalPresented = ModalAction.inspectDB
+                }
             }
+            .navigationTitle("Additional Actions")
+            .navigationBarTitleDisplayMode(.inline)
+            .listStyle(InsetGroupedListStyle())
         }
     }
+}
+
     
 struct NotificationBell: View {
         @ObservedObject var notificationModel: NotificationListModel
