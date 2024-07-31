@@ -39,8 +39,10 @@ struct ReadView: View {
             ReadViewField(fieldName: "Email Address", fieldValue: contact.email)
             ReadViewField(fieldName: "Department", fieldValue: contact.department)
         }
+        .listStyle(InsetGroupedListStyle())
     }
 }
+
 struct ReadViewField: View {
     var fieldName: String
     var fieldValue: String?
@@ -51,6 +53,7 @@ struct ReadViewField: View {
         }
     }
 }
+
 struct EditView: View {
     @Binding var contact: ContactSObjectData
     var body: some View {
@@ -101,10 +104,14 @@ struct ContactDetailView: View {
             if isEditing {
                 EditView(contact: $viewModel.contact)
                     .padding()
+                    .background(Color(UIColor.secondarySystemBackground))
+                //Background outside text box of edit view
             } else {
                 VStack {
                     ReadView(contact: viewModel.contact)
                         .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                    //Background outside text box of read view
                     
                     HStack(spacing: 20) {
                         Button(action: {
@@ -143,13 +150,15 @@ struct ContactDetailView: View {
                         }
                         .disabled(viewModel.contact.email == nil)
                     }
-                    .padding(.top, 20)
+                    .padding(.bottom, 30)
                 }
+                //Background color of just buttons
             }
             
             Spacer()
-            
         }
+        .background(Color(UIColor.secondarySystemBackground))
+        //Background color of buttons and below
         .onAppear {
             self.onAppearAction()
         }
@@ -186,13 +195,12 @@ struct ContactDetailView: View {
                     self.dismissAction()
                 }
             }
+            //Background of "Edit, Done"
         )
-}
+        //Background color of buttons and below
+    }
 
 
-
-    
-    
     struct DeleteButton: View {
         let label: String
         let isDisabled: Bool
