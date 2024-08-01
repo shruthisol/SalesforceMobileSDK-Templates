@@ -72,13 +72,13 @@ struct ContactListView: View {
                 }
             }
             if let alertContent = viewModel.alertContent {
-                            StatusAlert(viewModel: viewModel)
-                                .frame(maxWidth: 300)
-                                .background(Color(UIColor.secondarySystemBackground))
-                                .cornerRadius(20)
-                                .shadow(radius: 10)
-                                .padding()
-                        }
+                StatusAlert(viewModel: viewModel)
+                    .frame(maxWidth: 300)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(20)
+                    .shadow(radius: 10)
+                    .padding()
+            }
         }
         .sheet(isPresented: $customActionSheetPresented) {
                     CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
@@ -208,120 +208,7 @@ struct NewContactView: View {
         }
     }
 }
-
-    struct ContactBox: View {
-        var contact: ContactSObjectData
-        @State private var isHovered: Bool = false
-        
-        var body: some View {
-            VStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                        .frame(width: 160, height: 160)
-                        .scaledToFit()
-                    
-                    
-                    Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                        .font(.system(size: 64))
-                        .foregroundColor(.white)
-                }
-                .padding(20)
-                
-                
-                Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                    .font(.largeTitle)
-                    .foregroundColor(Color(UIColor.label))
-                    .frame(height: 40) // Fixed height for name
-                
-                // Contact Title
-                Text(ContactHelper.titleStringFromContact(title: contact.title))
-                    .font(.title)
-                    .foregroundColor(Color(UIColor.label))
-                    .frame(height: 20) // Fixed height for title
-                
-                
-                if #available(iOS 17.0, *) {
-                    HStack(spacing: 20) {
-                        if let mobilePhone = contact.mobilePhone {
-                            Button(action: {
-                                if let url = URL(string: "tel:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Image(systemName: "phone.fill")
-                                    .foregroundColor(.white)
-                            }
-                            
-                            Button(action: {
-                                if let url = URL(string: "sms:\(mobilePhone)"), UIApplication.shared.canOpenURL(url) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Image(systemName: "message.fill")
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        if let email = contact.email {
-                            Button(action: {
-                                if let url = URL(string: "mailto:\(email)"), UIApplication.shared.canOpenURL(url) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Image(systemName: "envelope.fill")
-                                    .foregroundColor(.white)
-                            }
-                        }
-                    }
-                    .frame(height: 40)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    .padding(.bottom, 10)
-                    .buttonBorderShape(.circle)
-                } else {
-                    // Fallback on earlier versions
-                }
-            }
-            .padding(20)
-            .frame(width: 300, height: 400)
-            .background(Color(UIColor.systemBackground))
-            //.cornerRadius(8)
-            .shadow(radius: 10)
-            .scaleEffect(isHovered ? 1.05 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: isHovered)
-            .onHover { hovering in
-                self.isHovered = hovering
-            }
-        }
-    }
-    
-    struct AddContactBox: View {
-        @State private var isHovered: Bool = false
-        
-        var body: some View {
-            VStack {
-                Spacer()
-                
-                Image(systemName: "plus")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-            }
-            .padding(10)
-            .background(Color(UIColor.systemBackground))
-            .shadow(radius: 10)
-            .frame(width: 100, height: 140)
-            .scaleEffect(isHovered ? 1.05 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: isHovered)
-            .onHover { hovering in
-                self.isHovered = hovering
-            }
-        }
-    }
+  
     
 struct StatusAlert: View {
     @ObservedObject var viewModel: ContactListViewModel
@@ -509,28 +396,6 @@ struct NotificationBell: View {
                 }
                 .frame(width: 20, height: 30)
             }
-        }
-    }
-    
-    struct ContactCell: View {
-        var contact: ContactSObjectData
-        
-        var body: some View {
-            HStack {
-                Image(uiImage: ContactHelper.initialsImage(ContactHelper.colorFromContact(lastName: contact.lastName), initials: ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))!)
-                VStack(alignment: .leading) {
-                    Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName)).font(.appRegularFont(16)).foregroundColor(Color(UIColor.label))
-                    Text(ContactHelper.titleStringFromContact(title: contact.title)).font(.appRegularFont(12)).foregroundColor(.secondaryLabelText)
-                }
-                Spacer()
-                if SObjectDataManager.dataLocallyUpdated(contact) {
-                    Image(systemName: "arrow.2.circlepath").foregroundColor(.appBlue)
-                }
-                if SObjectDataManager.dataLocallyCreated(contact) {
-                    Image(systemName: "plus").foregroundColor(.appBlue)
-                }
-            }
-            .padding([.all], 10)
         }
     }
     
