@@ -34,10 +34,6 @@ struct ContactListView: View {
     @State private var searchTerm: String = ""
     @State private var contactId: ContactSObjectData.ID?
     @State private var selectedContactId: ContactSObjectData.ID?
-    @State private var showSettings = false
-    @State private var syncAlertPresented = false
-    @State private var showNewContact = false
-    @State private var showNotifications = false
     @State private var modalPresented: ModalAction?
     @State private var customActionSheetPresented = false
     @State private var logoutAlertPresented = false
@@ -51,7 +47,7 @@ struct ContactListView: View {
     var body: some View {
         VStack {
             TabView {
-                ContactsTab(viewModel: viewModel, notificationModel: notificationModel, searchTerm: $searchTerm, contactId: $contactId, selectedContactId: $selectedContactId, showNewContact: $showNewContact)
+                ContactsTab(viewModel: viewModel, notificationModel: notificationModel, searchTerm: $searchTerm, contactId: $contactId, selectedContactId: $selectedContactId)
                     .tabItem {
                         Label("Contacts", systemImage: "person.2")
                     }
@@ -62,15 +58,16 @@ struct ContactListView: View {
                     }
                 
                 NavigationStack {
-                    NotificationList(model: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                    NotificationList(model: notificationModel, sObjectDataManager: viewModel.sObjectDataManager)
                 }
                 .tabItem {
                     VStack {
-                        NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
+                        NotificationBell(notificationModel: notificationModel, sObjectDataManager: viewModel.sObjectDataManager)
                         Text("Notifications")
                     }
                 }
             }
+            
             if let alertContent = viewModel.alertContent {
                 StatusAlert(viewModel: viewModel)
                     .frame(maxWidth: 300)
@@ -81,16 +78,15 @@ struct ContactListView: View {
             }
         }
         .sheet(isPresented: $customActionSheetPresented) {
-                    CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
-                }
-        
-        .alert(isPresented: $logoutAlertPresented, content: {
-                    Alert(title: Text("Are you sure you want to log out?"),
-                          primaryButton: .destructive(Text("Logout"), action: {
-                              UserAccountManager.shared.logout()
-                          }),
-                          secondaryButton: .cancel())
-                })
+            CustomActionSheet(viewModel: viewModel, logoutAlertPresented: $logoutAlertPresented, modalPresented: $modalPresented)
+        }
+        .alert(isPresented: $logoutAlertPresented) {
+            Alert(title: Text("Are you sure you want to log out?"),
+                  primaryButton: .destructive(Text("Logout"), action: {
+                      UserAccountManager.shared.logout()
+                  }),
+                  secondaryButton: .cancel())
+        }
     }
 }
 
@@ -100,84 +96,89 @@ struct ContactsTab: View {
     @Binding var searchTerm: String
     @Binding var contactId: ContactSObjectData.ID?
     @Binding var selectedContactId: ContactSObjectData.ID?
-    @Binding var showNewContact: Bool
+    @State private var showNewContact = false
     @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                VStack {
-                    List(selection: $contactId) {
-                        ForEach(viewModel.sObjectDataManager.contacts.filter { contact in
-                            self.searchTerm.isEmpty ? true : self.viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: self.searchTerm)
-                        }) { contact in
-                            NavigationLink(
-                                destination: ContactDetailView(localId: contact.id.stringValue, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() }),
-                                tag: contact.id,
-                                selection: $contactId
-                            ) {
-                                HStack {
-                                    Circle()
-                                        .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
-                                        .frame(width: 45, height: 45)
-                                        .overlay(
-                                            Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                                .font(.system(size: 20))
-                                                .foregroundColor(.white)
-                                                .kerning(0.3)
-                                        )
-
-                                    VStack(alignment: .leading) {
-                                        Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
-                                            .font(.headline)
-                                            .lineLimit(1)
-
-                                        Text(ContactHelper.titleStringFromContact(title: contact.title))
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-
-                                    Spacer()
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 8)
-                                .background(Color.clear)
-                            }
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            VStack {
+                List(selection: $contactId) {
+                    ForEach(viewModel.sObjectDataManager.contacts.filter { contact in
+                        searchTerm.isEmpty || viewModel.contactMatchesSearchTerm(contact: contact, searchTerm: searchTerm)
+                    }) { contact in
+                        NavigationLink(
+                            destination: ContactDetailView(localId: contact.id.stringValue, sObjectDataManager: viewModel.sObjectDataManager, viewModel: nil, dismiss: { viewModel.dismissDetail() }),
+                            tag: contact.id,
+                            selection: $contactId
+                        ) {
+                            ContactRow(contact: contact)
                         }
                     }
-                    .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
                 }
-                .frame(minWidth: 200)
-                .onAppear {
-                    if UIDevice.current.userInterfaceIdiom != .phone {
-                        if let firstContact = viewModel.sObjectDataManager.contacts.first {
-                            self.contactId = firstContact.id
-                        }
-                    }
-                    self.notificationModel.fetchNotifications()
-                }
-                .navigationTitle("Contacts")
-                .navigationBarItems(trailing: Button(action: {
-                    showNewContact = true
-                }) {
-                    Image(systemName: "plus")
-                })
-            } detail: {
-                if let selectedContact = contactId?.stringValue {
-                    ContactDetailView(localId: selectedContact, sObjectDataManager: self.viewModel.sObjectDataManager, viewModel: nil, dismiss: { self.viewModel.dismissDetail() })
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    Text(viewModel.sObjectDataManager.contacts.isEmpty ? "No Recent Contacts" : "Select a contact to view details")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                .searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always))
             }
-            .navigationSplitViewStyle(.balanced)
-            .sheet(isPresented: $showNewContact) {
-                NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager, selectedContactID: $contactId)
+            .frame(minWidth: 200)
+            .onAppear {
+                if UIDevice.current.userInterfaceIdiom != .phone, let firstContact = viewModel.sObjectDataManager.contacts.first {
+                    contactId = firstContact.id
+                }
+                notificationModel.fetchNotifications()
+            }
+            .navigationTitle("Contacts")
+            .navigationBarItems(trailing: Button(action: {
+                showNewContact = true
+            }) {
+                Image(systemName: "plus")
+            })
+        } detail: {
+            if let selectedContact = contactId?.stringValue {
+                ContactDetailView(localId: selectedContact, sObjectDataManager: viewModel.sObjectDataManager, viewModel: nil, dismiss: { viewModel.dismissDetail() })
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Text(viewModel.sObjectDataManager.contacts.isEmpty ? "No Recent Contacts" : "Select a contact to view details")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .navigationSplitViewStyle(.balanced)
+        .sheet(isPresented: $showNewContact) {
+            NewContactView(showModal: $showNewContact, sObjectDataManager: viewModel.sObjectDataManager, selectedContactID: $contactId)
+        }
+    }
 }
 
+struct ContactRow: View {
+    var contact: ContactSObjectData
+
+    var body: some View {
+        HStack {
+            Circle()
+                .fill(Color(ContactHelper.colorFromContact(lastName: contact.lastName)))
+                .frame(width: 45, height: 45)
+                .overlay(
+                    Text(ContactHelper.initialsStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
+                        .kerning(0.3)
+                )
+
+            VStack(alignment: .leading) {
+                Text(ContactHelper.nameStringFromContact(firstName: contact.firstName, lastName: contact.lastName))
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Text(ContactHelper.titleStringFromContact(title: contact.title))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .background(Color.clear)
+    }
+}
 
 struct NewContactView: View {
     @Binding var showModal: Bool
@@ -185,12 +186,13 @@ struct NewContactView: View {
     @ObservedObject var sObjectDataManager: SObjectDataManager
     @ObservedObject var viewModel: ContactDetailViewModel
 
-    init(showModal: Binding<Bool>, sObjectDataManager: SObjectDataManager, selectedContactID : Binding <ContactSObjectData.ID?>) {
+    init(showModal: Binding<Bool>, sObjectDataManager: SObjectDataManager, selectedContactID: Binding<ContactSObjectData.ID?>) {
         self.sObjectDataManager = sObjectDataManager
         self._showModal = showModal
         self._selectedContactID = selectedContactID
         self.viewModel = ContactDetailViewModel(localId: nil, sObjectDataManager: sObjectDataManager)
     }
+
     var body: some View {
         NavigationView {
             ContactDetailView(localId: nil, sObjectDataManager: sObjectDataManager, viewModel: viewModel, dismiss: {
@@ -200,7 +202,7 @@ struct NewContactView: View {
             .navigationBarItems(leading: Button("Cancel") {
                 showModal = false
             }, trailing: Button("Save") {
-                if let result = viewModel.saveButtonTapped(){
+                if let result = viewModel.saveButtonTapped() {
                     selectedContactID = result
                 }
                 showModal = false
@@ -208,25 +210,9 @@ struct NewContactView: View {
         }
     }
 }
-  
-    
+
 struct StatusAlert: View {
     @ObservedObject var viewModel: ContactListViewModel
-
-    func twoButtonDisplay() -> Bool {
-        if let alertContent = viewModel.alertContent {
-            return alertContent.okayButton && alertContent.stopButton
-        }
-        return false
-    }
-
-    func stopButton() -> Bool {
-        return viewModel.alertContent?.stopButton ?? false
-    }
-
-    func okayButton() -> Bool {
-        return viewModel.alertContent?.okayButton ?? false
-    }
 
     var body: some View {
         VStack {
@@ -241,10 +227,10 @@ struct StatusAlert: View {
                             Spacer()
                         }
                         Button(action: {
-                            self.viewModel.alertStopTapped()
-                        }, label: {
+                            viewModel.alertStopTapped()
+                        }) {
                             Text("Stop").foregroundColor(Color.blue)
-                        })
+                        }
                     }
                     
                     if twoButtonDisplay() {
@@ -255,10 +241,10 @@ struct StatusAlert: View {
 
                     if okayButton() {
                         Button(action: {
-                            self.viewModel.alertOkTapped()
-                        }, label: {
+                            viewModel.alertOkTapped()
+                        }) {
                             Text("Ok").foregroundColor(Color.blue)
-                        })
+                        }
                         if twoButtonDisplay() {
                             Spacer()
                         }
@@ -274,18 +260,28 @@ struct StatusAlert: View {
         .opacity(1.0)
         .foregroundColor(Color(UIColor.label))
     }
+
+    private func twoButtonDisplay() -> Bool {
+        viewModel.alertContent?.okayButton ?? false && viewModel.alertContent?.stopButton ?? false
+    }
+
+    private func stopButton() -> Bool {
+        viewModel.alertContent?.stopButton ?? false
+    }
+
+    private func okayButton() -> Bool {
+        viewModel.alertContent?.okayButton ?? false
+    }
 }
 
-    
-    enum ModalAction: Identifiable {
-        case switchUser
-        case inspectDB
-        
-        var id: Int {
-            return self.hashValue
-        }
+enum ModalAction: Identifiable {
+    case switchUser
+    case inspectDB
+
+    var id: Int {
+        hashValue
     }
-    
+}
 
 struct NavBarButtons: View {
     @ObservedObject var viewModel: ContactListViewModel
@@ -298,31 +294,38 @@ struct NavBarButtons: View {
         HStack {
             Button(action: {
                 viewModel.newContactToggled()
-            }, label: { Image("plusButton").renderingMode(.template) })
+            }) {
+                Image("plusButton").renderingMode(.template)
+            }
             Button(action: {
-                self.viewModel.syncUpDown()
-            }, label: { Image("sync").renderingMode(.template) })
+                viewModel.syncUpDown()
+            }) {
+                Image("sync").renderingMode(.template)
+            }
             Button(action: {
-                self.customActionSheetPresented = true
-            }, label: { Image("setting").renderingMode(.template) })
-                .sheet(item: $modalPresented) { action in
-                    switch action {
-                    case .switchUser:
-                        SalesforceUserManagementViewControllerWrapper()
-                    case .inspectDB:
-                        if let store = self.viewModel.sObjectDataManager.store {
-                            InspectorViewControllerWrapper(store: store)
-                        }
+                customActionSheetPresented = true
+            }) {
+                Image("setting").renderingMode(.template)
+            }
+            .sheet(item: $modalPresented) { action in
+                switch action {
+                case .switchUser:
+                    SalesforceUserManagementViewControllerWrapper()
+                case .inspectDB:
+                    if let store = viewModel.sObjectDataManager.store {
+                        InspectorViewControllerWrapper(store: store)
                     }
                 }
-            NotificationBell(notificationModel: notificationModel, sObjectDataManager: self.viewModel.sObjectDataManager)
-        }.alert(isPresented: $logoutAlertPresented, content: {
+            }
+            NotificationBell(notificationModel: notificationModel, sObjectDataManager: viewModel.sObjectDataManager)
+        }
+        .alert(isPresented: $logoutAlertPresented) {
             Alert(title: Text("Are you sure you want to log out?"),
                   primaryButton: .destructive(Text("Logout"), action: {
                       UserAccountManager.shared.logout()
                   }),
                   secondaryButton: .cancel())
-        })
+        }
     }
 }
 
@@ -335,38 +338,22 @@ struct CustomActionSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Button("Show Info") {
-                    self.viewModel.showInfo()
+                actionButton("Show Info", action: viewModel.showInfo)
+                actionButton("Clear Local Data", action: viewModel.clearLocalData)
+                actionButton("Refresh Local Data", action: viewModel.refreshLocalData)
+                actionButton("Sync Down", action: viewModel.syncDown)
+                actionButton("Sync Up", action: viewModel.syncUp)
+                actionButton("Clean Sync Ghosts", action: viewModel.cleanGhosts)
+                actionButton("Stop Sync Manager", action: viewModel.stopSyncManager)
+                actionButton("Resume Sync Manager", action: viewModel.resumeSyncManager)
+                actionButton("Logout") {
+                    logoutAlertPresented = true
                 }
-                Button("Clear Local Data") {
-                    self.viewModel.clearLocalData()
+                actionButton("Switch User") {
+                    modalPresented = .switchUser
                 }
-                Button("Refresh Local Data") {
-                    self.viewModel.refreshLocalData()
-                }
-                Button("Sync Down") {
-                    self.viewModel.syncDown()
-                }
-                Button("Sync Up") {
-                    self.viewModel.syncUp()
-                }
-                Button("Clean Sync Ghosts") {
-                    self.viewModel.cleanGhosts()
-                }
-                Button("Stop Sync Manager") {
-                    self.viewModel.stopSyncManager()
-                }
-                Button("Resume Sync Manager") {
-                    self.viewModel.resumeSyncManager()
-                }
-                Button("Logout") {
-                    self.logoutAlertPresented = true
-                }
-                Button("Switch User") {
-                    self.modalPresented = ModalAction.switchUser
-                }
-                Button("Inspect DB") {
-                    self.modalPresented = ModalAction.inspectDB
+                actionButton("Inspect DB") {
+                    modalPresented = .inspectDB
                 }
             }
             .navigationTitle("Additional Actions")
@@ -374,62 +361,62 @@ struct CustomActionSheet: View {
             .listStyle(InsetGroupedListStyle())
         }
     }
+
+    private func actionButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+    }
 }
 
-    
 struct NotificationBell: View {
-        @ObservedObject var notificationModel: NotificationListModel
-        var sObjectDataManager: SObjectDataManager
-        
-        var body: some View {
-            NavigationLink(destination: NotificationList(model: notificationModel, sObjectDataManager: sObjectDataManager)) {
-                ZStack {
-                    Image(systemName: "bell.fill").frame(width: 20, height: 30, alignment: .center)
-                    if notificationModel.unreadCount() > 0 {
-                        ZStack {
-                            Circle().foregroundColor(.red)
-                            Text("\(notificationModel.unreadCount())").foregroundColor(.white).font(Font.system(size: 12))
-                        }
-                        .frame(width: 12, height: 12)
-                        .position(x: 15, y: 10)
+    @ObservedObject var notificationModel: NotificationListModel
+    var sObjectDataManager: SObjectDataManager
+    
+    var body: some View {
+        NavigationLink(destination: NotificationList(model: notificationModel, sObjectDataManager: sObjectDataManager)) {
+            ZStack {
+                Image(systemName: "bell.fill").frame(width: 20, height: 30, alignment: .center)
+                if notificationModel.unreadCount() > 0 {
+                    ZStack {
+                        Circle().foregroundColor(.red)
+                        Text("\(notificationModel.unreadCount())")
+                            .foregroundColor(.white)
+                            .font(.system(size: 12))
                     }
+                    .frame(width: 12, height: 12)
+                    .position(x: 15, y: 10)
                 }
-                .frame(width: 20, height: 30)
             }
+            .frame(width: 20, height: 30)
+        }
+    }
+}
+
+struct InspectorViewControllerWrapper: UIViewControllerRepresentable {
+    var store: SmartStore
+    
+    func makeUIViewController(context: Context) -> InspectorViewController {
+        InspectorViewController(store: store)
+    }
+    
+    func updateUIViewController(_ uiViewController: InspectorViewController, context: Context) {}
+}
+
+struct SalesforceUserManagementViewControllerWrapper: UIViewControllerRepresentable {
+    @Environment(\.presentationMode) var presentationMode
+    
+    func makeUIViewController(context: Context) -> SalesforceUserManagementViewController {
+        SalesforceUserManagementViewController { _ in
+            presentationMode.wrappedValue.dismiss()
         }
     }
     
-    struct InspectorViewControllerWrapper: UIViewControllerRepresentable {
-        typealias UIViewControllerType = InspectorViewController
-        var store: SmartStore
-        
-        func updateUIViewController(_ uiViewController: InspectorViewController, context: Context) {
-        }
-        
-        func makeUIViewController(context: UIViewControllerRepresentableContext<InspectorViewControllerWrapper>) -> InspectorViewControllerWrapper.UIViewControllerType {
-            return InspectorViewController(store: store)
-        }
-    }
+    func updateUIViewController(_ uiViewController: SalesforceUserManagementViewController, context: Context) {}
+}
+
+#Preview {
+    let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
+    let userAccount = UserAccount(credentials: credentials)
+    let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
     
-    struct SalesforceUserManagementViewControllerWrapper: UIViewControllerRepresentable {
-        typealias UIViewControllerType = SalesforceUserManagementViewController
-        @Environment(\.presentationMode) var presentationMode
-        
-        func makeUIViewController(context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) -> SalesforceUserManagementViewControllerWrapper.UIViewControllerType {
-            return SalesforceUserManagementViewController { _ in
-                self.presentationMode.wrappedValue.dismiss()
-            }
-        }
-        
-        func updateUIViewController(_ uiViewController: SalesforceUserManagementViewControllerWrapper.UIViewControllerType, context: UIViewControllerRepresentableContext<SalesforceUserManagementViewControllerWrapper>) {
-        }
-    }
-    
-    #Preview {
-        let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
-        let userAccount = UserAccount(credentials: credentials)
-        let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
-        
-        return ContactListView(sObjectDataManager: sObjectManager)
-    }
-    
+    return ContactListView(sObjectDataManager: sObjectManager)
+}
