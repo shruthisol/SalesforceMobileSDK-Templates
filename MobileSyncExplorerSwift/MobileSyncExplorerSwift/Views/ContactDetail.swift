@@ -27,8 +27,10 @@
 
 import SwiftUI
 import SalesforceSDKCore
+
 struct ReadView: View {
     var contact: ContactSObjectData
+    
     var body: some View {
         List {
             ReadViewField(fieldName: "First Name", fieldValue: contact.firstName)
@@ -46,9 +48,12 @@ struct ReadView: View {
 struct ReadViewField: View {
     var fieldName: String
     var fieldValue: String?
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(fieldName).font(.subheadline).foregroundColor(.secondaryLabelText)
+            Text(fieldName)
+                .font(.subheadline)
+                .foregroundColor(.secondaryLabelText)
             Text(fieldValue ?? "")
         }
     }
@@ -56,6 +61,7 @@ struct ReadViewField: View {
 
 struct EditView: View {
     @Binding var contact: ContactSObjectData
+    
     var body: some View {
         Form {
             TextField("First Name", text: $contact.firstName.bound)
@@ -105,126 +111,131 @@ struct ContactDetailView: View {
                 EditView(contact: $viewModel.contact)
                     .padding()
                     .background(Color(UIColor.secondarySystemBackground))
-                //Background outside text box of edit view
             } else {
                 VStack {
                     ReadView(contact: viewModel.contact)
                         .padding()
                         .background(Color(UIColor.secondarySystemBackground))
-                    //Background outside text box of read view
                     
                     HStack(spacing: 20) {
-                        Button(action: {
-                            if let mobilePhone = viewModel.contact.mobilePhone,
-                               let url = URL(string: "facetime:\(mobilePhone)"),
-                               UIApplication.shared.canOpenURL(url) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Image(systemName: "video.fill")
-                                .font(.title)
-                        }
-                        .disabled(viewModel.contact.mobilePhone == nil)
-                        
-                        Button(action: {
-                            if let mobilePhone = viewModel.contact.mobilePhone,
-                               let url = URL(string: "sms:\(mobilePhone)"),
-                               UIApplication.shared.canOpenURL(url) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Image(systemName: "message.fill")
-                                .font(.title)
-                        }
-                        .disabled(viewModel.contact.mobilePhone == nil)
-                        
-                        Button(action: {
-                            if let email = viewModel.contact.email,
-                               let url = URL(string: "mailto:\(email)"),
-                               UIApplication.shared.canOpenURL(url) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Image(systemName: "envelope.fill")
-                                .font(.title)
-                        }
-                        .disabled(viewModel.contact.email == nil)
+                        videoCallButton()
+                        messageButton()
+                        emailButton()
                     }
                     .padding(.bottom, 30)
                 }
-                //Background color of just buttons
-                
             }
             
             Spacer()
         }
         .background(Color(UIColor.secondarySystemBackground))
-        //Background color of buttons and below
         .onAppear {
             self.onAppearAction()
         }
         .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
-        .navigationBarItems(trailing:
-            HStack {
-                if !self.viewModel.isNewContact {
+        .navigationBarItems(trailing: navigationBarButtons())
+    }
+    
+    private func videoCallButton() -> some View {
+        Button(action: {
+            if let mobilePhone = viewModel.contact.mobilePhone,
+               let url = URL(string: "facetime:\(mobilePhone)"),
+               UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Image(systemName: "video.fill")
+                .font(.title)
+        }
+        .disabled(viewModel.contact.mobilePhone == nil)
+    }
+    
+    private func messageButton() -> some View {
+        Button(action: {
+            if let mobilePhone = viewModel.contact.mobilePhone,
+               let url = URL(string: "sms:\(mobilePhone)"),
+               UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Image(systemName: "message.fill")
+                .font(.title)
+        }
+        .disabled(viewModel.contact.mobilePhone == nil)
+    }
+    
+    private func emailButton() -> some View {
+        Button(action: {
+            if let email = viewModel.contact.email,
+               let url = URL(string: "mailto:\(email)"),
+               UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Image(systemName: "envelope.fill")
+                .font(.title)
+        }
+        .disabled(viewModel.contact.email == nil)
+    }
+    
+    private func navigationBarButtons() -> some View {
+        HStack {
+            if !viewModel.isNewContact {
+                Button(action: {
+                    if isEditing {
+                        viewModel.saveButtonTapped()
+                        dismissAction()
+                    }
+                    withAnimation {
+                        isEditing.toggle()
+                    }
+                }) {
+                    Text(isEditing ? "Save" : "Edit")
+                }
+                .padding(.trailing, 10)
+                
+                if isEditing {
                     Button(action: {
-                        if self.isEditing {
-                            self.viewModel.saveButtonTapped()
-                            self.dismissAction()
-                        }
                         withAnimation {
-                            self.isEditing.toggle()
+                            isEditing.toggle()
                         }
-                    }, label: {
-                        self.isEditing ? Text("Save") : Text("Edit")
-                    })
-                    .padding(.trailing, 10)
-                    
-                    if self.isEditing {
-                        Button(action: {
-                            withAnimation {
-                                self.isEditing.toggle()
-                            }
-                        }, label: {
-                            Text("Cancel")
-                        })
+                    }) {
+                        Text("Cancel")
                     }
                 }
-                
-                DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
-                    self.viewModel.deleteButtonTapped()
-                    self.dismissAction()
-                }
             }
-            //Background of "Edit, Done"
-        )
-        //Background color of buttons and below
-    }
-
-
-    struct DeleteButton: View {
-        let label: String
-        let isDisabled: Bool
-        let action: () -> ()
-        
-        
-        var body: some View {
-            Button(action: {
-                self.action()
-            }, label: {
-                Text(label)
-            })
-            .disabled(isDisabled)
-            .foregroundColor(.red)
-            .cornerRadius(8)
-        }
-    }
-    #Preview {
-        let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
-        let userAccount = UserAccount(credentials: credentials)
-        let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
-        
-        return ContactDetailView(id: "", sObjectDataManager: sObjectManager) {
+            
+            DeleteButton(label: viewModel.deleteButtonTitle(), isDisabled: viewModel.isNewContact) {
+                viewModel.deleteButtonTapped()
+                dismissAction()
+            }
         }
     }
 }
+
+struct DeleteButton: View {
+    let label: String
+    let isDisabled: Bool
+    let action: () -> ()
+    
+    var body: some View {
+        Button(action: {
+            action()
+        }) {
+            Text(label)
+        }
+        .disabled(isDisabled)
+        .foregroundColor(.red)
+        .cornerRadius(8)
+    }
+}
+
+#Preview {
+    let credentials = OAuthCredentials(identifier: "test", clientId: "", encrypted: false)!
+    let userAccount = UserAccount(credentials: credentials)
+    let sObjectManager = SObjectDataManager.sharedInstance(for: userAccount)
+    
+    return ContactDetailView(id: "", sObjectDataManager: sObjectManager) {
+    }
+}
+
